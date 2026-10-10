@@ -31,4 +31,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
+          echo "--- projects visible to token: ---"
+          npx -y vercel@latest project ls --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | head -10
+          echo "--- deploying: ---"
           npx -y vercel@latest deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --cwd=vercel-dist/wwwroot
