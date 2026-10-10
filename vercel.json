@@ -1,0 +1,1 @@
+{"rewrites":[{"destination":"/index.html","source":"/login"},{"destination":"/index.html","source":"/orders/:path*"},{"destination":"/index.html","source":"/sync"},{"destination":"/index.html","source":"/audit"},{"destination":"/index.html","source":"/users"},{"destination":"/index.html","source":"/settings"}]}

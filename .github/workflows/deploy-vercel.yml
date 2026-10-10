@@ -1,0 +1,36 @@
+name: Deploy Blazor to Vercel
+
+# Tự động deploy frontend tĩnh (Blazor WebAssembly) lên Vercel mỗi khi push main.
+# Cần 3 GitHub Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# Lưu ý: đây chỉ deploy phần frontend tĩnh. API (.NET) cần host riêng,
+# sau đó điền URL API vào appsettings (xem README).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Publish Blazor client (static)
+        run: |
+          dotnet publish SalesWeb.Client -c Release -o vercel-dist
+          cp vercel.json vercel-dist/wwwroot/vercel.json
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./vercel-dist/wwwroot
+          vercel-args: '--prod --yes'

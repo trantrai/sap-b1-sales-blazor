@@ -15,6 +15,7 @@ data/
 
 # Publish output
 publish/
+vercel-dist/
 
 # OS / editor
 .DS_Store
