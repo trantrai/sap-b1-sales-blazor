@@ -1,0 +1,360 @@
+@page "/orders/new"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Tạo đơn hàng — Sale Order</PageTitle>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="fm-alert fm-alert--error" role="alert">
+        <div><b>Tạo đơn thất bại</b>@error</div>
+    </div>
+}
+
+<form @onsubmit="Submit" @onsubmit:preventDefault="true">
+    @* 1. Khách hàng *@
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">1. Khách hàng</h2>
+        <p class="fm-card__desc">Chọn đối tác trong SAP B1</p>
+        @if (customer is not null)
+        {
+            <div class="fm-alert fm-alert--info" style="align-items:center">
+                <div style="flex:1">
+                    <b>@customer.CardName</b> @customer.CardCode
+                </div>
+                <FluentButton Appearance="ButtonAppearance.Primary" Style="background:#E0522F"
+                              OnClick="ClearCustomer">Đổi</FluentButton>
+            </div>
+        }
+        else
+        {
+            <FluentAutocomplete TOption="CustomerOut" TValue="CustomerOut"
+                                OnOptionsSearch="OnCustomerSearch"
+                                OptionText="@(c => $"{c.CardName} ({c.CardCode})")"
+                                SelectedItem="@customer" SelectedItemChanged="@OnCustomerSelected"
+                                Placeholder="Gõ mã hoặc tên khách hàng…"
+                                MaximumOptionsSearch="20" />
+        }
+        <div class="fm-form-grid" style="margin-top:4px">
+            <div class="fm-field">
+                <label class="fm-label">Ngày giao hàng</label>
+                <FluentDatePicker TValue="DateTime?" @bind-Value="docDueDate" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Ghi chú</label>
+                <FluentTextInput @bind-Value="comments" Placeholder="Ghi chú đơn hàng…" Style="width:100%" />
+            </div>
+        </div>
+    </div>
+
+    @* 2. Dòng hàng *@
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">2. Dòng hàng</h2>
+        <p class="fm-card__desc">Thêm từng mặt hàng vào đơn</p>
+        <div class="fm-table-wrap" style="box-shadow:none">
+            <table class="fm-table">
+                <thead>
+                    <tr>
+                        <th style="width:36px">#</th>
+                        <th>Hàng hoá <span style="color:var(--fm-red)">*</span></th>
+                        <th class="fm-num" style="width:90px">SL *</th>
+                        <th class="fm-num" style="width:130px">Đơn giá</th>
+                        <th style="width:110px">Kho</th>
+                        <th style="width:150px">Ngày giao</th>
+                        <th style="width:130px">Thuế suất</th>
+                        <th class="fm-num" style="width:120px">Thành tiền</th>
+                        <th style="width:44px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int idx = 0; idx < lines.Count; idx++)
+                    {
+                        var ln = lines[idx];
+                        var i = idx;
+                        <tr class="@(string.IsNullOrEmpty(ln.ItemCode) ? "is-draft" : "")">
+                            <td>@(i + 1)</td>
+                            <td>
+                                <ItemSearch Selected="@ln.PickedItem"
+                                            SelectedChanged="@(it => OnItemPicked(i, it))" />
+                            </td>
+                            <td class="fm-num">
+                                <FluentNumberInput @bind-Value="ln.Quantity" Min="0"
+                                                   Style="text-align:right; width:100%" />
+                            </td>
+                            <td class="fm-num">
+                                <FluentNumberInput @bind-Value="ln.Price" Min="0"
+                                                   Style="text-align:right; width:100%" />
+                            </td>
+                            <td>
+                                <FluentSelect TValue="string" TOption="WarehouseOut"
+                                              Items="@warehouses"
+                                              OptionText="@(w => w.WarehouseCode)"
+                                              OptionValue="@(w => w.WarehouseCode)"
+                                              @bind-Value="ln.Warehouse" Placeholder="—" />
+                            </td>
+                            <td>
+                                <FluentDatePicker TValue="DateTime?" @bind-Value="ln.ShipDate" Style="width:100%" />
+                            </td>
+                            <td>
+                                <FluentSelect TValue="string" TOption="TaxCodeOut"
+                                              Items="@taxCodes"
+                                              OptionText="@(t => $"{t.Code} · {t.Rate}%")"
+                                              OptionValue="@(t => t.Code)"
+                                              @bind-Value="ln.TaxCode" Placeholder="Mặc định" />
+                            </td>
+                            <td class="fm-num" style="font-weight:600">@FmtMoney(LineTotal(ln))</td>
+                            <td>
+                                <button type="button" class="fm-row-del" title="Xoá dòng"
+                                        aria-label="@($"Xoá dòng {i + 1}")"
+                                        disabled="@(lines.Count == 1)"
+                                        @onclick="() => lines.RemoveAt(i)">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="AddLine" Style="margin-top:10px">
+            + Thêm dòng hàng
+        </FluentButton>
+    </div>
+
+    @* 3. Thông tin bổ sung *@
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">3. Thông tin bổ sung</h2>
+        <p class="fm-card__desc">Các trường chuẩn SAP B1</p>
+        <div class="fm-form-grid">
+            <div class="fm-field">
+                <label class="fm-label">Số PO của KH (NumAtCard)</label>
+                <FluentTextInput @bind-Value="numAtCard" Placeholder="VD: PO-2026-001" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Ngày hạch toán (TaxDate)</label>
+                <FluentDatePicker TValue="DateTime?" @bind-Value="taxDate" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Tiền tệ</label>
+                <FluentSelect TValue="string" TOption="string" Items="@currencyOptions"
+                              @bind-Value="docCurrency" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Tỷ giá (nếu ngoại tệ)</label>
+                <FluentNumberInput @bind-Value="docRate" Min="0"
+                                   Placeholder="VD: 25000" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Điều khoản thanh toán</label>
+                <FluentSelect TValue="int?" TOption="PaymentTermOut" Items="@paymentTerms"
+                              OptionText="@(t => t.Name)" OptionValue="@(t => (int?)t.GroupNumber)"
+                              @bind-Value="paymentGroupCode" Placeholder="— Theo KH —" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Hình thức vận chuyển</label>
+                <FluentSelect TValue="int?" TOption="ShippingTypeOut" Items="@shippingTypes"
+                              OptionText="@(t => t.Name)" OptionValue="@(t => (int?)t.Code)"
+                              @bind-Value="transportationCode" Placeholder="—" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Địa chỉ giao hàng</label>
+                <FluentSelect TValue="string" TOption="BpAddressOut" Items="@ShipAddresses"
+                              OptionText="@(a => $"{a.AddressName} — {a.Street}")"
+                              OptionValue="@(a => a.AddressName)"
+                              @bind-Value="shipToCode" Placeholder="—" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Địa chỉ hoá đơn</label>
+                <FluentSelect TValue="string" TOption="BpAddressOut" Items="@BillAddresses"
+                              OptionText="@(a => $"{a.AddressName} — {a.Street}")"
+                              OptionValue="@(a => a.AddressName)"
+                              @bind-Value="payToCode" Placeholder="—" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Mã dự án</label>
+                <FluentTextInput @bind-Value="project" Placeholder="VD: PRJ-01" Style="width:100%" />
+            </div>
+        </div>
+        @if (customer is not null)
+        {
+            <div class="fm-hint">
+                @if (contacts.Count > 0)
+                {
+                    @($"Người liên hệ: {string.Join(" · ", contacts.Select(c => $"{c.Name}{(string.IsNullOrEmpty(c.Phone) ? "" : $" ({c.Phone})")}"))}")
+                }
+                else
+                {
+                    @("Khách hàng này chưa có người liên hệ trong B1.")
+                }
+            </div>
+        }
+    </div>
+
+    @* Tổng + submit *@
+    <div class="fm-card" style="display:flex; align-items:center; gap:16px">
+        <FluentButton Appearance="ButtonAppearance.Primary" Type="ButtonType.Submit"
+                      Disabled="@(!valid || busy)" Loading="busy" Style="padding:10px 28px">
+            @(busy ? "Đang tạo…" : "Tạo đơn hàng")
+        </FluentButton>
+        <div class="fm-totals">
+            <div class="fm-totals__grand">
+                <span>TỔNG CỘNG</span>
+                <span>@FmtMoney(total) @docCurrency</span>
+            </div>
+        </div>
+    </div>
+</form>
+
+@code {
+    private class LineVm
+    {
+        public ItemOut? PickedItem { get; set; }
+        public string ItemCode { get; set; } = "";
+        public string ItemName { get; set; } = "";
+        public double Quantity { get; set; } = 1;
+        public double Price { get; set; }
+        public string? Warehouse { get; set; }
+        public double DiscountPercent { get; set; }
+        public DateTime? ShipDate { get; set; }
+        public string? TaxCode { get; set; }
+    }
+
+    private CustomerOut? customer;
+    private List<LineVm> lines = new() { new LineVm() };
+    private List<WarehouseOut> warehouses = new();
+    private List<PaymentTermOut> paymentTerms = new();
+    private List<ShippingTypeOut> shippingTypes = new();
+    private List<TaxCodeOut> taxCodes = new();
+    private List<BpAddressOut> addresses = new();
+    private List<BpContactOut> contacts = new();
+
+    private string? comments;
+    private DateTime? docDueDate;
+    private string? numAtCard;
+    private DateTime? taxDate;
+    private readonly string[] currencyOptions = new[] { "VND", "USD" };
+    private string? docCurrency = "VND";
+    private double? docRate;
+    private int? paymentGroupCode;
+    private int? transportationCode;
+    private string? shipToCode;
+    private string? payToCode;
+    private string? project;
+    private string error = "";
+    private bool busy;
+
+    private IEnumerable<BpAddressOut> ShipAddresses =>
+        addresses.Where(a => a.AddressType != "bo_BillTo");
+    private IEnumerable<BpAddressOut> BillAddresses =>
+        addresses.Where(a => a.AddressType != "bo_ShipTo");
+
+    private static double LineTotal(LineVm l) => l.Quantity * l.Price * (1 - l.DiscountPercent / 100);
+    private double total => lines.Sum(LineTotal);
+    private bool valid => customer is not null && lines.Count > 0
+        && lines.All(l => !string.IsNullOrEmpty(l.ItemCode) && l.Quantity > 0);
+
+    private static string FmtMoney(double n) =>
+        n.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (!Auth.HasRole("sales")) { Nav.NavigateTo("/"); return; }
+        try
+        {
+            warehouses = await Api.ListWarehousesAsync() ?? new();
+            paymentTerms = await Api.ListPaymentTermsAsync() ?? new();
+            shippingTypes = await Api.ListShippingTypesAsync() ?? new();
+            taxCodes = await Api.ListTaxCodesAsync() ?? new();
+        }
+        catch (ApiException ex) { error = ex.Message; }
+    }
+
+    private async Task OnCustomerSearch(OptionsSearchEventArgs<CustomerOut> e)
+    {
+        e.Items = string.IsNullOrWhiteSpace(e.Text)
+            ? Enumerable.Empty<CustomerOut>()
+            : await Api.SearchCustomersAsync(e.Text) ?? new List<CustomerOut>();
+    }
+
+    private async Task OnCustomerSelected(CustomerOut? c)
+    {
+        customer = c;
+        await OnCustomerChanged();
+    }
+
+    private async Task OnCustomerChanged()
+    {
+        addresses.Clear(); contacts.Clear(); shipToCode = payToCode = null;
+        if (customer is null) return;
+        try
+        {
+            var rows = await Api.GetCustomerAddressesAsync(customer.CardCode) ?? new();
+            addresses = rows;
+            var ship = rows.FirstOrDefault(a => a.AddressType == "bo_ShipTo");
+            var bill = rows.FirstOrDefault(a => a.AddressType == "bo_BillTo");
+            if (ship is not null) shipToCode = ship.AddressName;
+            if (bill is not null) payToCode = bill.AddressName;
+            contacts = await Api.GetCustomerContactsAsync(customer.CardCode) ?? new();
+        }
+        catch { /* bỏ qua */ }
+    }
+
+    private void ClearCustomer()
+    {
+        customer = null;
+        _ = OnCustomerChanged();
+    }
+
+    private void OnItemPicked(int idx, ItemOut? item)
+    {
+        var ln = lines[idx];
+        ln.PickedItem = item;
+        ln.ItemCode = item?.ItemCode ?? "";
+        ln.ItemName = item?.ItemName ?? "";
+        if (item is not null) ln.Price = item.Price;
+    }
+
+    private void AddLine() => lines.Add(new LineVm());
+
+    private static DateOnly? ToDateOnly(DateTime? d) =>
+        d is DateTime v ? DateOnly.FromDateTime(v) : null;
+
+    private async Task Submit()
+    {
+        if (!valid || busy) return;
+        busy = true; error = "";
+        try
+        {
+            var order = await Api.CreateOrderAsync(new SalesWeb.Shared.Dtos.OrderCreate
+            {
+                ExternalId = $"WEB-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+                CardCode = customer!.CardCode,
+                Comments = comments,
+                DocDueDate = ToDateOnly(docDueDate),
+                TaxDate = ToDateOnly(taxDate),
+                NumAtCard = numAtCard,
+                DocCurrency = docCurrency,
+                DocRate = docRate,
+                PaymentGroupCode = paymentGroupCode,
+                TransportationCode = transportationCode,
+                ShipToCode = shipToCode,
+                PayToCode = payToCode,
+                Project = project,
+                Lines = lines.Select(l => new SalesWeb.Shared.Dtos.OrderLineIn
+                {
+                    ItemCode = l.ItemCode,
+                    Quantity = l.Quantity,
+                    Price = l.Price,
+                    Warehouse = l.Warehouse,
+                    DiscountPercent = l.DiscountPercent,
+                    ShipDate = ToDateOnly(l.ShipDate),
+                    TaxCode = l.TaxCode,
+                }).ToList(),
+            });
+            Nav.NavigateTo($"/orders/{order?.DocEntry}");
+        }
+        catch (ApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+}

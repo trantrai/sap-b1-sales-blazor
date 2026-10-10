@@ -1,0 +1,192 @@
+@page "/settings"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Cài đặt kết nối — Sale Order</PageTitle>
+
+@if (loading)
+{
+    <div>Đang tải…</div>
+}
+else
+{
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Cài đặt kết nối Service Layer</h2>
+        <p class="fm-card__desc" style="margin-bottom:0">
+            Chọn chạy demo bằng dữ liệu giả hoặc kết nối tới SAP Business One thật qua
+            Service Layer. Thay đổi được áp dụng ngay không cần khởi động lại server.
+            @(fromDb
+                ? " Cấu hình hiện tại đang lấy từ cơ sở dữ liệu (ghi đè file .env)."
+                : " Cấu hình hiện tại đang lấy từ file .env (chưa lưu qua giao diện).")
+        </p>
+    </div>
+
+    @if (msg is not null)
+    {
+        <div class="@MsgClass" role="status">
+            <div>@msg.Text</div>
+        </div>
+    }
+
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Chế độ kết nối</h2>
+        <FluentRadioGroup TValue="string" @bind-Value="modeMock" Orientation="Orientation.Horizontal">
+            <FluentRadio TValue="string" Value="@("mock")" Label="Demo (dữ liệu giả)" />
+            <FluentRadio TValue="string" Value="@("live")" Label="SAP B1 thật" />
+        </FluentRadioGroup>
+        <div class="fm-hint" style="margin-top:6px">
+            @(IsMock ? "Chạy thử giao diện, không cần SAP B1 thật"
+                     : "Kết nối Service Layer tới công ty thật")
+        </div>
+    </div>
+
+    <div class="fm-card" style="margin-bottom:14px; opacity:@(IsMock ? "0.55" : "1")">
+        <h2 class="fm-card__title">Thông tin Service Layer</h2>
+        <p class="fm-card__desc">Chỉ áp dụng khi chọn chế độ "SAP B1 thật"</p>
+        <div class="fm-form-grid">
+            <div class="fm-field">
+                <label class="fm-label">Service Layer URL</label>
+                <FluentTextInput @bind-Value="form.B1ServiceLayerUrl" Disabled="@IsMock"
+                                 Placeholder="https://b1-server:50000/b1s/v2" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">CompanyDB</label>
+                <FluentTextInput @bind-Value="form.B1CompanyDb" Disabled="@IsMock"
+                                 Placeholder="SBODEMO_VN" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Tên đăng nhập (kỹ thuật)</label>
+                <FluentTextInput @bind-Value="form.B1Username" Disabled="@IsMock"
+                                 AutoComplete="off" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Mật khẩu</label>
+                <FluentTextInput TextInputType="TextInputType.Password" @bind-Value="form.B1Password"
+                                 Disabled="@IsMock" AutoComplete="new-password"
+                                 Placeholder="••••••••" Style="width:100%" />
+                <div class="fm-hint">Để trống để giữ nguyên mật khẩu đã lưu (được mã hoá trong DB)</div>
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Timeout (giây)</label>
+                <FluentNumberInput @bind-Value="timeout" Min="5" Max="120"
+                                   Disabled="@IsMock" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Kiểm tra chứng chỉ SSL</label>
+                <FluentSelect TValue="bool" TOption="KeyValuePair<bool,string>"
+                              Items="@sslOptions" OptionText="@(o => o.Value)" OptionValue="@(o => o.Key)"
+                              @bind-Value="form.B1VerifySsl" Disabled="@IsMock" />
+            </div>
+        </div>
+        <div class="fm-alert fm-alert--info" style="margin-top:6px; margin-bottom:0">
+            <div>
+                Nên dùng tài khoản kỹ thuật (service account) riêng cho tích hợp, không dùng
+                tài khoản manager cá nhân. Mật khẩu được mã hoá trước khi lưu vào DB local.
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:10px">
+        <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoTest">
+            @(busy == "test" ? "Đang kiểm tra…" : "Kiểm tra kết nối")
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@(busy is not null)" OnClick="DoSave">
+            @(busy == "save" ? "Đang lưu…" : "Lưu & áp dụng ngay")
+        </FluentButton>
+    </div>
+}
+
+@code {
+    private record Msg(string Text, bool IsError);
+
+    private string MsgClass => msg is not null && msg.IsError
+        ? "fm-alert fm-alert--error"
+        : "fm-alert fm-alert--success";
+
+    private static readonly List<KeyValuePair<bool, string>> sslOptions = new()
+    {
+        new(true, "Bật (khuyên dùng)"),
+        new(false, "Tắt (B1 dùng cert tự ký)"),
+    };
+
+    private ConnSettingsIn form = new();
+    private double timeout = 30;
+    private bool fromDb;
+    private bool loading = true;
+    private string? busy; // "test" | "save"
+    private Msg? msg;
+
+    private bool IsMock => modeMock == "mock";
+    private string modeMock = "mock";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (!Auth.HasRole("admin")) { Nav.NavigateTo("/"); return; }
+        try
+        {
+            var d = await Api.GetConnSettingsAsync();
+            if (d is not null)
+            {
+                modeMock = d.B1Mock ? "mock" : "live";
+                form = new ConnSettingsIn
+                {
+                    B1Mock = d.B1Mock,
+                    B1ServiceLayerUrl = d.B1ServiceLayerUrl,
+                    B1CompanyDb = d.B1CompanyDb,
+                    B1Username = d.B1Username,
+                    B1Password = "", // không hiện mật khẩu thật; để trống = giữ nguyên
+                    B1VerifySsl = d.B1VerifySsl,
+                };
+                timeout = d.B1Timeout;
+                fromDb = d.FromDb;
+            }
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { loading = false; }
+    }
+
+    private async Task DoTest()
+    {
+        busy = "test"; msg = null;
+        try
+        {
+            var r = await Api.TestConnSettingsAsync(new ConnTestIn
+            {
+                B1Mock = IsMock,
+                B1ServiceLayerUrl = form.B1ServiceLayerUrl,
+                B1CompanyDb = form.B1CompanyDb,
+                B1Username = form.B1Username,
+                B1Password = form.B1Password,
+                B1VerifySsl = form.B1VerifySsl,
+                Timeout = 10,
+            });
+            msg = new Msg(r?.Message ?? "", !(r?.Ok ?? false));
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+
+    private async Task DoSave()
+    {
+        if (!IsMock && !await JS.InvokeAsync<bool>("confirm",
+            "Lưu và chuyển sang kết nối SAP B1 thật? Hệ thống sẽ ngắt client hiện tại và kết nối lại ngay."))
+            return;
+        busy = "save"; msg = null;
+        try
+        {
+            form.B1Mock = IsMock;
+            form.B1Timeout = timeout;
+            var r = await Api.SaveConnSettingsAsync(form);
+            msg = new Msg(
+                $"Đã lưu và áp dụng. Chế độ hiện tại: {(r?.Mode == "mock" ? "Demo (dữ liệu giả)" : "B1 thật")}.{(string.IsNullOrEmpty(r?.Hint) ? "" : " " + r.Hint)}",
+                false);
+            form.B1Password = "";
+            fromDb = true;
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+}

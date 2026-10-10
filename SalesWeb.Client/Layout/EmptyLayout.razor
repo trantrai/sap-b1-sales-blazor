@@ -1,0 +1,13 @@
+@inherits LayoutComponentBase
+@inject IThemeService ThemeService
+
+@Body
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Áp dụng palette navy #1E3A5F cho toàn bộ Fluent components
+        var theme = await ThemeService.CreateCustomThemeAsync(new ThemeSettings { Color = "#1E3A5F", IsExact = true });
+        await ThemeService.SetThemeAsync(theme);
+    }
+}

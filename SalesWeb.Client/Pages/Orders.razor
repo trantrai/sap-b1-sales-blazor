@@ -1,0 +1,166 @@
+@page "/"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<PageTitle>Danh sách đơn — Sale Order</PageTitle>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="fm-alert fm-alert--error" role="alert">
+        <div><b>Lỗi tải dữ liệu</b>@error</div>
+    </div>
+}
+
+<div class="fm-filterbar">
+    <div class="fm-field-inline">
+        <label class="fm-label-inline" for="filter-status">Trạng thái</label>
+        <FluentSelect Id="filter-status" TValue="string" TOption="string" Items="@statusOptions.Keys"
+                      OptionText="@(v => statusOptions[v])" OptionValue="@(v => v)"
+                      @bind-SelectedOption="status" Style="min-width:150px" aria-label="Lọc theo trạng thái đơn" />
+    </div>
+    <FluentTextInput @bind-Value="cardCode" Placeholder="Mã KH (VD: C20000)"
+                     Style="min-width:150px" @onkeydown="OnFilterKey" />
+    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="ApplyFilter">Lọc</FluentButton>
+    <span class="fm-filterbar__spacer"></span>
+    <span style="font-size:12.5px; color:var(--fm-text-2)">@total đơn hàng</span>
+</div>
+
+<div class="fm-table-wrap">
+    <FluentDataGrid Items="@orders.AsQueryable()" TGridItem="OrderOut" Loading="@loading"
+                    EmptyContent="@emptyContent" Style="width:100%">
+        <TemplateColumn Title="Số đơn" Sortable="true" SortBy="@(GridSort<OrderOut>.ByAscending(o => o.DocNum))">
+            <div class="fm-cell-ellipsis" style="font-weight:700" title="@($"Đơn #{context.DocNum} — PO: {context.NumAtCard}")">
+                <a href="@($"/orders/{context.DocEntry}")" style="font-weight:700">#@context.DocNum</a>
+                @if (!string.IsNullOrEmpty(context.NumAtCard))
+                {
+                    <div class="fm-cell-sub">PO: @context.NumAtCard</div>
+                }
+            </div>
+        </TemplateColumn>
+        <PropertyColumn Property="@(o => o.DocDate)" Title="Ngày" />
+        <TemplateColumn Title="Khách hàng">
+            <div class="fm-cell-ellipsis" style="font-weight:600" title="@($"{context.CardName} ({context.CardCode})")">@context.CardName</div>
+            <div class="fm-cell-sub">@context.CardCode</div>
+        </TemplateColumn>
+        <TemplateColumn Title="Tổng tiền" Align="DataGridCellAlignment.End">
+            <div style="font-weight:700; text-align:right; font-variant-numeric:tabular-nums">
+                @FmtMoney(context.DocTotal)
+                @if (!string.IsNullOrEmpty(context.Currency))
+                {
+                    <div style="font-size:11px; color:var(--fm-text-3); font-weight:400">@context.Currency</div>
+                }
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="Trạng thái">
+            <span class="fm-chip @StatusChip(context.Status)">@StatusLabel(context.Status)</span>
+        </TemplateColumn>
+    </FluentDataGrid>
+</div>
+
+<div class="fm-pagination">
+    <span style="margin-right:8px">Trang @currentPage / @totalPages</span>
+    <FluentButton Appearance="ButtonAppearance.Subtle" Disabled="@(skip == 0 || loading)" OnClick="PrevPage" aria-label="Trang trước" Title="Trang trước">←</FluentButton>
+    <FluentButton Appearance="ButtonAppearance.Subtle" Disabled="@(skip + top >= total || loading)" OnClick="NextPage" aria-label="Trang sau" Title="Trang sau">→</FluentButton>
+</div>
+
+@code {
+    private static readonly Dictionary<string, string> statusOptions = new()
+    {
+        ["open"] = "Đang mở", ["closed"] = "Đã đóng", ["cancelled"] = "Đã hủy", ["all"] = "Tất cả",
+    };
+
+    private List<OrderOut> orders = new();
+    private int total;
+    private string? status = "open";
+    private string? cardCode;
+    private int skip;
+    private const int top = 20;
+    private bool loading;
+    private string error = "";
+    private RenderFragment emptyContent = @<div style="text-align:center; padding:24px; color:var(--fm-text-3)">Không có đơn hàng</div>;
+
+    private int currentPage => skip / top + 1;
+    private int totalPages => Math.Max(1, (int)Math.Ceiling(total / (double)top));
+
+    private static string StatusLabel(string s) => s switch
+    {
+        "open" => "Đang mở", "closed" => "Đã đóng", "cancelled" => "Đã hủy", _ => s,
+    };
+    private static string StatusChip(string s) => s switch
+    {
+        "open" => "fm-chip--open", "closed" => "fm-chip--closed", "cancelled" => "fm-chip--overdue",
+        _ => "fm-chip--closed",
+    };
+    private static string FmtMoney(double n) =>
+        n.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Đọc filter từ query string để deep-link được: ?status=open&card=C20000&page=2
+        var q = ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
+        var st = q.TryGetValue("status", out var s) ? s : "open";
+        if (!statusOptions.ContainsKey(st)) st = "open";
+        var card = q.TryGetValue("card", out var c) ? c : "";
+        var page = q.TryGetValue("page", out var p) && int.TryParse(p, out var pg) && pg >= 1 ? pg : 1;
+
+        var changed = !_urlSynced || st != status || card != cardCode || (page - 1) * top != skip;
+        status = st;
+        cardCode = card;
+        skip = (page - 1) * top;
+        _urlSynced = true;
+        if (changed) await Load();
+    }
+
+    private bool _urlSynced;
+
+    private static Dictionary<string, string> ParseQuery(string query)
+    {
+        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(query)) return d;
+        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2)
+                d[Uri.UnescapeDataString(kv[0])] = Uri.UnescapeDataString(kv[1].Replace("+", " "));
+        }
+        return d;
+    }
+
+    private void SyncUrl()
+    {
+        // Chỉ đưa param khác mặc định lên URL cho gọn
+        var parts = new List<string>();
+        if (status != "open") parts.Add($"status={Uri.EscapeDataString(status ?? "open")}");
+        if (!string.IsNullOrWhiteSpace(cardCode)) parts.Add($"card={Uri.EscapeDataString(cardCode.Trim())}");
+        if (currentPage > 1) parts.Add($"page={currentPage}");
+        Nav.NavigateTo(parts.Count == 0 ? "/" : "/?" + string.Join("&", parts));
+    }
+
+    private async Task Load()
+    {
+        loading = true; error = "";
+        try
+        {
+            var data = await Api.ListOrdersAsync(status, cardCode, top, skip);
+            orders = data?.Items ?? new();
+            total = data?.Total ?? 0;
+        }
+        catch (ApiException ex)
+        {
+            if (ex.Status == 401) { await Auth.LogoutAsync(); Nav.NavigateTo("/login"); return; }
+            error = ex.Message;
+        }
+        finally { loading = false; }
+    }
+
+    private void ApplyFilter() { skip = 0; SyncUrl(); }
+
+    private void OnFilterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") ApplyFilter();
+    }
+
+    private void PrevPage() { skip = Math.Max(0, skip - top); SyncUrl(); }
+    private void NextPage() { skip += top; SyncUrl(); }
+}

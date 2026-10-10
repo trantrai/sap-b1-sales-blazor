@@ -1,0 +1,18 @@
+services:
+  salesweb:
+    build: .
+    image: salesweb:latest
+    container_name: salesweb
+    ports:
+      - "8080:8080"          # đổi 8080 bên trái nếu muốn cổng khác, VD "5050:8080"
+    volumes:
+      - ./data:/app/data     # giữ SQLite + settings khi recreate container
+    environment:
+      B1_MOCK: "true"        # "false" khi nối SAP B1 thật
+      # B1_SERVICE_LAYER_URL: "https://your-b1-server:50000/b1s/v2"
+      # B1_COMPANY_DB: "SBODEMO_VN"
+      # B1_USERNAME: "manager"
+      # B1_PASSWORD: "changeme"
+      JWT_SECRET: "doi-mat-khau-nay-di-toi-thieu-32-ky-tu-xxxx"
+      DATA_DIR: /app/data
+    restart: unless-stopped

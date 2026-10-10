@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+*.nupkg
+
+# SQLite / runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Publish output
+publish/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*~
+.idea/

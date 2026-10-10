@@ -1,0 +1,6 @@
+@SalesWeb.Server_HostAddress = http://localhost:5082
+
+GET {{SalesWeb.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

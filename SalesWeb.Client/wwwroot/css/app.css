@@ -1,0 +1,427 @@
+/* ============================================================
+   FLUENT THEME OVERRIDES — navy #1E3A5F / gold #F2B705 / coral #E0522F
+   ============================================================ */
+:root {
+  --accent-fill-rest: #1E3A5F;
+  --accent-fill-hover: #2a4d78;
+  --accent-fill-active: #16294a;
+  --accent-fill-focus: #1E3A5F;
+  --accent-foreground-rest: #1E3A5F;
+  --accent-foreground-hover: #2a4d78;
+  --accent-foreground-active: #16294a;
+  --accent-foreground-focus: #1E3A5F;
+  --error: #E0522F;
+  --body-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+}
+
+html, body {
+  font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  margin: 0;
+  background: #f3f2f1;
+  color: #201f1e;
+  -webkit-font-smoothing: antialiased;
+}
+body a { color: #1E3A5F; }
+body ::selection { background: #e8edf4; }
+
+/* Fluent dialog/content font + spacing tweaks */
+fluent-dialog::part(control) { border-top: 4px solid #F2B705; }
+
+/* FluentDataGrid header theo phong cách Fluent */
+fluent-data-grid .column-header { background: #faf9f8; }
+
+/* Ẩn bootstrap còn sót của template */
+.btn-primary { background-color: #1E3A5F; border-color: #1E3A5F; }
+
+/* ============================================================
+   PORT từ fm-theme.css của bản React (giữ nguyên class fm-*)
+   ============================================================ */
+/* ============================================================
+   FLUENT — SAP B1 SALE ORDER SYSTEM · GLOBAL THEME
+   Phong cách Microsoft Fluent: nền xám nhạt, card trắng viền
+   mảnh, accent xanh Fluent, font Segoe UI, bo góc nhỏ (2-4px),
+   bóng đổ tinh tế, chiều sâu nhẹ.
+   (Giữ nguyên tên class fm-* để tương thích component.)
+   ============================================================ */
+
+:root {
+  /* ---------- Brand palette — theo logo Farmers Market ----------
+     Navy #1E3A5F: nút chính, link, focus, menu active
+     Gold #F2B705: điểm nhấn (viền topbar, login, tổng cộng, badge)
+     Coral #E0522F: nút nguy hiểm, lỗi                         */
+  --fm-yellow:        #1e3a5f;   /* Accent chính (navy) — CTA, highlight */
+  --fm-yellow-hover:  #16294a;
+  --fm-yellow-soft:   #e8edf4;   /* chip Open, hover row */
+  --fm-yellow-faint:  #f1f4f9;
+  --fm-gold:          #f2b705;   /* Điểm nhấn vàng gold */
+  --fm-gold-soft:     #fdf3d7;
+  --fm-navy:          #201f1e;   /* Chữ chính */
+  --fm-navy-deep:     #11100f;   /* Tiêu đề lớn */
+  --fm-navy-soft:     rgba(30, 58, 95, .08);
+  --fm-red:           #e0522f;   /* Lỗi, nguy hiểm (đỏ san hô) */
+  --fm-red-soft:      #fdeee6;
+  --fm-green:         #107c10;   /* Thành công */
+  --fm-green-soft:    #dff6dd;
+  --fm-cream:         #f3f2f1;   /* Nền trang chính */
+  --fm-surface:       #ffffff;   /* Card, input, bảng */
+  --fm-line:          #edebe9;   /* Đường kẻ, border */
+  --fm-text:          #201f1e;
+  --fm-text-2:        #605e5c;   /* Metadata, phụ đề */
+  --fm-text-3:        #a19f9d;
+
+  /* ---------- Typography ---------- */
+  --fm-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --fm-fs-xs: 11px;  --fm-fs-sm: 12.5px; --fm-fs-md: 14px;
+  --fm-fs-lg: 16px;  --fm-fs-xl: 20px;   --fm-fs-2xl: 26px;
+
+  /* ---------- Shape & depth (Fluent) ---------- */
+  --fm-r-sm: 2px;  --fm-r-md: 4px;  --fm-r-lg: 4px;  --fm-r-pill: 999px;
+  --fm-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.13), 0 .3px .9px 0 rgba(0,0,0,.11);
+  --fm-shadow-pop: 0 6.4px 14.4px 0 rgba(0,0,0,.18), 0 1.2px 3.6px 0 rgba(0,0,0,.11);
+
+  /* ---------- Layout ---------- */
+  --fm-sidebar-w: 220px;
+  --fm-topbar-h: 56px;
+  --fm-accent-bar: 1px solid var(--fm-line);
+}
+
+/* ============================================================
+   0. RESET CƠ BẢN
+   ============================================================ */
+.fm-body, .fm-app-root {
+  margin: 0; background: var(--fm-cream); color: var(--fm-text);
+  font-family: var(--fm-font); font-size: var(--fm-fs-md);
+  -webkit-font-smoothing: antialiased;
+}
+.fm-body a { color: var(--fm-yellow); }
+.fm-body ::selection { background: var(--fm-yellow-soft); }
+
+/* ============================================================
+   1. KHUNG ỨNG DỤNG — Sidebar sáng + Topbar trắng
+   ============================================================ */
+.fm-layout { display: flex; min-height: 100vh; }
+
+.fm-sidebar {
+  width: var(--fm-sidebar-w); flex-shrink: 0;
+  background: var(--fm-surface);
+  border-right: 1px solid var(--fm-line);
+  padding: 12px 8px; display: flex; flex-direction: column;
+}
+.fm-logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; }
+.fm-logo__badge {
+  width: 36px; height: 36px; border-radius: var(--fm-r-md);
+  background: var(--fm-yellow); color: var(--fm-gold);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; letter-spacing: .5px;
+}
+.fm-logo__name { font-weight: 600; font-size: 13px; line-height: 1.25; letter-spacing: .2px; color: var(--fm-text); }
+.fm-logo__name small { display: block; font-weight: 400; font-size: 10.5px; color: var(--fm-text-2); }
+
+.fm-menu-item {
+  padding: 8px 12px; border-radius: var(--fm-r-md);
+  color: var(--fm-text); font-size: 13px; cursor: pointer;
+  border-left: 3px solid transparent; margin-bottom: 2px;
+  transition: background .12s;
+  text-decoration: none; display: block;
+}
+.fm-menu-item:hover { background: #f3f2f1; }
+.fm-menu-item.is-active {
+  background: var(--fm-yellow-soft); color: var(--fm-yellow);
+  border-left-color: var(--fm-yellow); font-weight: 600;
+}
+.fm-menu-item.is-disabled { opacity: .4; cursor: not-allowed; }
+
+.fm-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.fm-topbar {
+  height: var(--fm-topbar-h); background: var(--fm-surface);
+  border-bottom: 2px solid var(--fm-gold);
+  padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
+}
+.fm-topbar__title { font-size: var(--fm-fs-lg); font-weight: 600; color: var(--fm-text); }
+.fm-topbar__user { display: flex; align-items: center; gap: 8px; font-size: var(--fm-fs-sm); color: var(--fm-text-2); }
+
+.fm-page { padding: 20px; }
+
+/* ============================================================
+   2. NÚT BẤM — Fluent: bo 2px, viền mảnh
+   ============================================================ */
+.fm-btn {
+  border: 1px solid transparent; border-radius: var(--fm-r-sm); cursor: pointer;
+  font-family: var(--fm-font); font-size: 13px; font-weight: 600;
+  padding: 7px 18px; transition: background .12s, border-color .12s;
+}
+.fm-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.fm-btn--primary { background: var(--fm-yellow); color: #fff; border-color: var(--fm-yellow); }
+.fm-btn--primary:hover:not(:disabled) { background: var(--fm-yellow-hover); border-color: var(--fm-yellow-hover); }
+.fm-btn--primary:active:not(:disabled) { background: #0f1f38; border-color: #0f1f38; }
+
+.fm-btn--secondary { background: var(--fm-surface); color: var(--fm-text); border-color: #8a8886; font-weight: 400; }
+.fm-btn--secondary:hover:not(:disabled) { background: #f3f2f1; }
+
+.fm-btn--danger { background: var(--fm-surface); color: var(--fm-red); border-color: #8a8886; font-weight: 400; }
+.fm-btn--danger:hover:not(:disabled) { background: var(--fm-red-soft); border-color: var(--fm-red); color: var(--fm-red); }
+
+.fm-btn--ghost { background: transparent; color: var(--fm-yellow); border-color: transparent; }
+.fm-btn--ghost:hover:not(:disabled) { background: var(--fm-yellow-soft); }
+
+.fm-btn--sm { padding: 4px 12px; font-size: 12px; }
+
+/* ============================================================
+   3. FORM
+   ============================================================ */
+.fm-card {
+  background: var(--fm-surface); border: 1px solid var(--fm-line);
+  border-radius: var(--fm-r-md); box-shadow: var(--fm-shadow);
+  padding: 20px;
+}
+.fm-card__title { font-size: var(--fm-fs-lg); font-weight: 600; color: var(--fm-text); margin: 0 0 4px; }
+.fm-card__desc  { font-size: var(--fm-fs-sm); color: var(--fm-text-2); margin: 0 0 16px; }
+
+.fm-field { margin-bottom: 14px; }
+.fm-label { display: block; font-size: var(--fm-fs-sm); font-weight: 600; color: var(--fm-text); margin-bottom: 5px; }
+.fm-label__req { color: var(--fm-red); margin-left: 2px; }
+.fm-input, .fm-select, .fm-datepicker {
+  width: 100%; box-sizing: border-box;
+  background: var(--fm-surface); border: 1px solid #8a8886;
+  border-radius: var(--fm-r-sm); padding: 7px 10px;
+  font-family: var(--fm-font); font-size: 13px; color: var(--fm-text);
+  transition: border-color .12s, box-shadow .12s;
+}
+.fm-input::placeholder { color: var(--fm-text-3); }
+.fm-input:focus, .fm-select:focus, .fm-datepicker:focus {
+  outline: none; border-color: var(--fm-yellow);
+  box-shadow: 0 0 0 1px var(--fm-yellow);
+}
+.fm-input.is-error { border-color: var(--fm-red); box-shadow: 0 0 0 1px var(--fm-red); }
+.fm-error-text { font-size: 11px; color: var(--fm-red); margin-top: 4px; }
+.fm-hint { font-size: 11px; color: var(--fm-text-3); margin-top: 4px; }
+
+/* Vòng focus hiển thị rõ khi điều hướng bằng bàn phím (web-design-guidelines) */
+.fm-btn:focus-visible, .fm-menu-item:focus-visible, .fm-topbar a:focus-visible,
+.fm-row-del:focus-visible {
+  outline: 2px solid var(--fm-navy); outline-offset: 2px;
+}
+.fm-input:focus-visible, .fm-select:focus-visible, .fm-datepicker:focus-visible {
+  outline: 2px solid var(--fm-navy); outline-offset: 1px;
+}
+
+.fm-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+
+/* Banner trạng thái kết nối */
+.fm-conn-banner {
+  display: flex; align-items: center; gap: 8px;
+  border-radius: var(--fm-r-pill); padding: 6px 12px;
+  font-size: 12px; font-weight: 600; margin-bottom: 16px;
+}
+.fm-conn-banner--ok   { background: var(--fm-green-soft); color: var(--fm-green); }
+.fm-conn-banner--fail { background: var(--fm-red-soft);   color: var(--fm-red); }
+.fm-conn-banner .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+/* ============================================================
+   4. BẢNG DỮ LIỆU — Header xám nhạt kiểu Fluent
+   ============================================================ */
+.fm-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--fm-surface); }
+.fm-table th {
+  background: #faf9f8; color: var(--fm-text); text-align: left;
+  padding: 10px 12px; font-size: 12px; font-weight: 600;
+  border-bottom: 1px solid var(--fm-line);
+  white-space: nowrap;
+}
+.fm-table td { padding: 9px 12px; border-bottom: 1px solid #f3f2f1; vertical-align: middle; }
+.fm-table tbody tr:hover { background: #f5f5f5; }
+.fm-table .fm-num { text-align: right; font-variant-numeric: tabular-nums; }
+.fm-table tfoot td {
+  background: var(--fm-yellow-faint); font-weight: 600; color: var(--fm-text);
+  border-top: 2px solid var(--fm-yellow);
+}
+.fm-table-wrap { border: 1px solid var(--fm-line); border-radius: var(--fm-r-md); overflow: hidden; box-shadow: var(--fm-shadow); background: var(--fm-surface); }
+
+/* Dòng line-item đang nhập dở (form tạo SO) */
+.fm-table tr.is-draft td { background: var(--fm-yellow-faint); }
+.fm-row-del { background: none; border: none; color: var(--fm-red); cursor: pointer; font-size: 15px; padding: 2px 6px; border-radius: var(--fm-r-sm); }
+.fm-row-del:hover { background: var(--fm-red-soft); }
+
+/* ============================================================
+   5. CHIP TRẠNG THÁI
+   ============================================================ */
+.fm-chip {
+  display: inline-block; padding: 3px 10px; border-radius: var(--fm-r-pill);
+  font-size: 11px; font-weight: 600; line-height: 1.5; white-space: nowrap;
+}
+.fm-chip--open    { background: var(--fm-yellow-soft); color: var(--fm-yellow); }
+.fm-chip--closed  { background: #f3f2f1; color: #605e5c; }
+.fm-chip--overdue { background: var(--fm-red-soft);  color: var(--fm-red); }
+.fm-chip--role    { background: var(--fm-gold-soft); color: #8a6d00; }
+.fm-chip--perm-c  { background: var(--fm-green-soft); color: var(--fm-green); }
+.fm-chip--perm-d  { background: var(--fm-red-soft);   color: var(--fm-red); }
+
+/* ============================================================
+   6. THANH LỌC + PHÂN TRANG
+   ============================================================ */
+.fm-filterbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.fm-filterbar .fm-input, .fm-filterbar .fm-select, .fm-filterbar .fm-datepicker { width: auto; min-width: 150px; }
+.fm-filterbar__spacer { flex: 1; }
+
+.fm-pagination { display: flex; gap: 6px; justify-content: flex-end; align-items: center; margin-top: 12px; font-size: 12.5px; color: var(--fm-text-2); }
+.fm-page-btn {
+  min-width: 30px; height: 30px; border-radius: var(--fm-r-sm);
+  border: 1px solid #8a8886; background: var(--fm-surface);
+  color: var(--fm-text); cursor: pointer; font-size: 12.5px;
+}
+.fm-page-btn:hover:not(:disabled) { background: #f3f2f1; }
+.fm-page-btn.is-active { background: var(--fm-yellow); border-color: var(--fm-yellow); color: #fff; font-weight: 600; }
+.fm-page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ============================================================
+   7. THÔNG BÁO
+   ============================================================ */
+.fm-alert { display: flex; gap: 10px; border-radius: var(--fm-r-md); padding: 11px 14px; font-size: 13px; margin-bottom: 14px; border: 1px solid transparent; }
+.fm-alert b { display: block; margin-bottom: 2px; }
+.fm-alert--success { background: var(--fm-green-soft); color: var(--fm-green); border-color: #a7d8a9; }
+.fm-alert--error   { background: var(--fm-red-soft);   color: var(--fm-red);   border-color: #f0b79f; }
+.fm-alert--info    { background: var(--fm-yellow-soft); color: var(--fm-yellow); border-color: #b9c6da; }
+
+/* ============================================================
+   8. PHÂN QUYỀN RBAC
+   ============================================================ */
+.fm-perm-matrix td:not(:first-child), .fm-perm-matrix th:not(:first-child) { text-align: center; }
+.fm-switch { position: relative; width: 36px; height: 20px; display: inline-block; cursor: pointer; }
+.fm-switch input { display: none; }
+.fm-switch .track { position: absolute; inset: 0; background: #c8c6c4; border-radius: var(--fm-r-pill); transition: background .2s; }
+.fm-switch .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.fm-switch input:checked + .track { background: var(--fm-yellow); }
+.fm-switch input:checked + .track::after { transform: translateX(16px); }
+
+/* ============================================================
+   9. AUTOCOMPLETE
+   ============================================================ */
+.fm-autocomplete { position: relative; }
+.fm-autocomplete__panel {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
+  background: var(--fm-surface); border: 1px solid var(--fm-line);
+  border-radius: var(--fm-r-md); box-shadow: var(--fm-shadow-pop);
+  max-height: 260px; overflow: auto;
+}
+.fm-autocomplete__opt { padding: 8px 12px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+.fm-autocomplete__opt:hover, .fm-autocomplete__opt.is-hl { background: #f3f2f1; }
+.fm-autocomplete__opt small { color: var(--fm-text-2); }
+
+/* ============================================================
+   10. TỔNG KẾT ĐƠN HÀNG
+   ============================================================ */
+.fm-totals { margin-left: auto; width: 300px; font-size: 13px; }
+.fm-totals__row { display: flex; justify-content: space-between; padding: 5px 0; }
+.fm-totals__grand {
+  display: flex; justify-content: space-between; padding: 9px 12px; margin-top: 6px;
+  background: var(--fm-yellow); color: var(--fm-gold); font-weight: 600;
+  border-radius: var(--fm-r-md); font-size: 14px;
+}
+
+/* ============================================================
+   11. LOGIN
+   ============================================================ */
+.fm-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--fm-cream); }
+.fm-login__panel { width: 380px; background: var(--fm-surface); border: 1px solid var(--fm-line); border-top: 4px solid var(--fm-gold); border-radius: var(--fm-r-md); box-shadow: var(--fm-shadow-pop); padding: 32px; }
+.fm-login__brand { text-align: center; margin-bottom: 22px; }
+
+/* ============================================================
+   12. MODAL + CODE BLOCK
+   ============================================================ */
+.fm-modal__overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(17, 16, 15, .45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 48px 16px; overflow: auto;
+}
+.fm-modal {
+  background: var(--fm-surface); border-radius: var(--fm-r-md);
+  box-shadow: var(--fm-shadow-pop); width: 560px; max-width: 100%;
+  border-top: 4px solid var(--fm-gold);
+}
+.fm-modal__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--fm-line);
+  font-size: var(--fm-fs-lg);
+}
+.fm-modal__body { padding: 18px 20px; max-height: 70vh; overflow: auto; }
+.fm-code {
+  background: #faf9f8; border: 1px solid var(--fm-line);
+  border-radius: var(--fm-r-sm); padding: 10px 12px;
+  font-family: Consolas, 'Courier New', monospace; font-size: 12px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 260px; overflow: auto; margin: 4px 0 0;
+}
+
+/* Link "bỏ qua tới nội dung" — chỉ hiện khi focus bằng bàn phím */
+.fm-skip-link {
+  position: absolute;
+  left: 12px;
+  top: -56px;
+  z-index: 2000;
+  background: #1E3A5F;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: top .15s ease;
+}
+.fm-skip-link:focus-visible { top: 12px; color: #fff; }
+.fm-skip-link:focus:not(:focus-visible) { top: -56px; }
+#fm-main-content:focus { outline: none; }
+
+/* ============================================================
+   13. Ô BẢNG CHỐNG TRÀN CHỮ
+   ============================================================ */
+.fm-cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+}
+.fm-cell-sub {
+  font-size: 11px;
+  color: var(--fm-text-3);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Cụm label + control nằm ngang trong thanh lọc */
+.fm-field-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.fm-label-inline {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fm-text-2);
+  white-space: nowrap;
+}
+
+/* Cho phép ô FluentDataGrid chứa 2 dòng (tên + dòng phụ),
+   chữ dài vẫn cắt ngang bằng .fm-cell-ellipsis bên trong.
+   !important vì FluentDataGrid render inline style height:32px trên td. */
+.fm-table-wrap table.fluent-data-grid td {
+  white-space: normal;
+  overflow: visible;
+  height: auto !important;
+  vertical-align: middle;
+}
+
+/* ============================================================
+   14. RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .fm-sidebar { width: 64px; padding: 12px 6px; }
+  .fm-logo__name, .fm-menu-item span { display: none; }
+  .fm-form-grid { grid-template-columns: 1fr; }
+}

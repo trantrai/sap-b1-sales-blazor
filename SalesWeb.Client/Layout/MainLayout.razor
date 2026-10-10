@@ -1,0 +1,158 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AuthState Auth
+@inject ApiClient Api
+@inject NavigationManager Nav
+@inject IThemeService ThemeService
+
+<a class="fm-skip-link" href="#fm-main-content" @onclick="FocusMain" @onclick:preventDefault>Bỏ qua tới nội dung chính</a>
+<div class="fm-layout fm-app-root">
+    <aside class="fm-sidebar">
+        <div class="fm-logo">
+            <div class="fm-logo__badge">SO</div>
+            <div class="fm-logo__name">
+                SALE ORDER<small>SAP B1 · HANA</small>
+            </div>
+        </div>
+        <FluentNav Width="100%">
+            <FluentNavItem Href="/" Match="NavLinkMatch.All">Danh sách đơn</FluentNavItem>
+            @if (Auth.HasRole("sales"))
+            {
+                <FluentNavItem Href="/orders/new">Tạo đơn hàng</FluentNavItem>
+            }
+            <FluentNavItem Href="/sync">Đồng bộ dữ liệu</FluentNavItem>
+            <FluentNavItem Href="/audit">
+                Giám sát tích hợp
+                @if (failedCount > 0)
+                {
+                    <FluentBadge Appearance="BadgeAppearance.Filled" Style="margin-left:6px; --badge-fill-primary: var(--fm-red)">@failedCount</FluentBadge>
+                }
+            </FluentNavItem>
+            @if (Auth.HasRole("admin"))
+            {
+                <FluentNavItem Href="/users">Người dùng &amp; phân quyền</FluentNavItem>
+                <FluentNavItem Href="/settings">Cài đặt kết nối</FluentNavItem>
+            }
+        </FluentNav>
+        <div style="margin-top:auto; padding:12px 6px 0; border-top:1px solid var(--fm-line)">
+            <div style="font-size:12px; color:var(--fm-text-2); margin-bottom:6px">
+                @(string.IsNullOrWhiteSpace(Auth.User?.FullName) ? Auth.User?.Username : Auth.User?.FullName)
+            </div>
+            <span class="fm-chip fm-chip--role">@Auth.User?.Role</span>
+            <div style="margin-top:10px">
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="Logout" Style="width:100%">
+                    Đăng xuất
+                </FluentButton>
+            </div>
+        </div>
+    </aside>
+    <div class="fm-main">
+        <div class="fm-topbar">
+            <div class="fm-topbar__title">@PageTitle</div>
+            <div class="fm-topbar__user">
+                @if (b1Mode == "live")
+                {
+                    <span class="fm-conn-banner fm-conn-banner--ok" style="margin:0; padding:4px 10px; background:var(--fm-gold-soft); color:#8a6d00">
+                        <span class="dot"></span> B1 trực tiếp
+                    </span>
+                }
+                else
+                {
+                    <span class="fm-conn-banner fm-conn-banner--ok" style="margin:0; padding:4px 10px">
+                        <span class="dot"></span> B1 mock
+                    </span>
+                }
+            </div>
+        </div>
+        <div class="fm-page" id="fm-main-content" @ref="mainContentRef" tabindex="-1">
+            @Body
+        </div>
+    </div>
+</div>
+
+<FluentToastProvider />
+<FluentDialogProvider />
+<FluentTooltipProvider />
+<FluentMessageBarProvider />
+
+@code {
+    private int failedCount;
+    private string b1Mode = "mock";
+    private System.Threading.Timer? timer;
+
+    private string PageTitle => GetRelativePath() switch
+    {
+        "" or "/" => "Danh sách đơn",
+        "/orders/new" => "Tạo đơn hàng",
+        "/sync" => "Đồng bộ dữ liệu",
+        "/audit" => "Giám sát tích hợp",
+        "/users" => "Người dùng & phân quyền",
+        "/settings" => "Cài đặt kết nối",
+        var p when p.StartsWith("/orders/") => "Chi tiết đơn",
+        _ => "Sale Order",
+    };
+
+    private string GetRelativePath()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var p = uri.AbsolutePath;
+        return p.Length > 1 ? p.TrimEnd('/') : p;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Áp dụng palette navy #1E3A5F cho toàn bộ Fluent components
+        var theme = await ThemeService.CreateCustomThemeAsync(new ThemeSettings { Color = "#1E3A5F", IsExact = true });
+        await ThemeService.SetThemeAsync(theme);
+        var state = await Auth.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+        await RefreshModeAsync();
+        await RefreshFailedAsync();
+        timer = new System.Threading.Timer(async _ => await RefreshFailedAsync(),
+            null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task RefreshModeAsync()
+    {
+        try
+        {
+            var h = await Api.GetHealthAsync();
+            if (h is not null) { b1Mode = h.B1Mode; StateHasChanged(); }
+        }
+        catch { /* bỏ qua */ }
+    }
+
+    private async Task RefreshFailedAsync()
+    {
+        try
+        {
+            var r = await Api.GetFailedCountAsync();
+            if (r is not null && r.Failed != failedCount)
+            {
+                failedCount = r.Failed;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch { /* bỏ qua */ }
+    }
+
+    private async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+
+    private ElementReference mainContentRef;
+
+    private async Task FocusMain()
+    {
+        // Chuyển focus thật sự tới vùng nội dung (trình duyệt chỉ cuộn, không focus)
+        await mainContentRef.FocusAsync();
+    }
+
+    public void Dispose() => timer?.Dispose();
+}
