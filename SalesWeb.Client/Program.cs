@@ -9,7 +9,14 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+// Base URL của API: đọc từ appsettings.json ("ApiBaseUrl").
+// Để trống = cùng origin với frontend (API + Blazor chung một server).
+// Khi deploy frontend tĩnh (Vercel) tách khỏi API, điền URL tuyệt đối của API.
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+var apiBase = string.IsNullOrWhiteSpace(apiBaseUrl)
+    ? builder.HostEnvironment.BaseAddress
+    : apiBaseUrl.TrimEnd('/') + "/";
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBase) });
 builder.Services.AddFluentUIComponents();
 builder.Services.AddScoped<TokenStore>();
 builder.Services.AddScoped<ApiClient>();
