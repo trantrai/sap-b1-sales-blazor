@@ -27,11 +27,8 @@ jobs:
           cp vercel.json vercel-dist/wwwroot/vercel.json
 
       - name: Deploy to Vercel
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          echo "--- projects visible to token: ---"
-          npx -y vercel@latest project ls --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | head -10
-          echo "--- deploying: ---"
-          npx -y vercel@latest deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --cwd=vercel-dist/wwwroot
+          mkdir -p vercel-dist/wwwroot/.vercel
+          printf '{"orgId":"%s","projectId":"%s"}' "${{ secrets.VERCEL_ORG_ID }}" "${{ secrets.VERCEL_PROJECT_ID }}" > vercel-dist/wwwroot/.vercel/project.json
+          cd vercel-dist/wwwroot
+          npx -y vercel@latest deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
