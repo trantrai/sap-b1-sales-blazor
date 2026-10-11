@@ -208,6 +208,11 @@ fluent-data-grid .column-header { background: #faf9f8; }
 }
 
 .fm-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+/* Grid 2 cột cố định cho phần Thông tin chung */
+.fm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+@media (max-width: 600px) {
+  .fm-grid-2 { grid-template-columns: 1fr; }
+}
 
 /* Banner trạng thái kết nối */
 .fm-conn-banner {
