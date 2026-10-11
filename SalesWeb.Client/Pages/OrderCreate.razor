@@ -1,5 +1,6 @@
 @page "/orders/new"
 @inject ApiClient Api
+@inject MasterDataCache MdCache
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -34,7 +35,7 @@
                                 OnOptionsSearch="OnCustomerSearch"
                                 OptionText="@(c => $"{c.CardName} ({c.CardCode})")"
                                 SelectedItem="@customer" SelectedItemChanged="@OnCustomerSelected"
-                                Placeholder="Gõ mã hoặc tên khách hàng…"
+                                Placeholder="Gõ ít nhất 2 ký tự để tìm khách hàng…"
                                 MaximumOptionsSearch="20" />
         }
         <div class="fm-form-grid" style="margin-top:4px">
@@ -323,9 +324,8 @@
 
     private async Task OnCustomerSearch(OptionsSearchEventArgs<CustomerOut> e)
     {
-        e.Items = string.IsNullOrWhiteSpace(e.Text)
-            ? Enumerable.Empty<CustomerOut>()
-            : await Api.SearchCustomersAsync(e.Text) ?? new List<CustomerOut>();
+        // Cache client: chỉ tìm khi nhập >= 2 ký tự, lọc trên bộ nhớ
+        e.Items = await MdCache.SearchCustomersAsync(e.Text);
     }
 
     private async Task OnCustomerSelected(CustomerOut? c)

@@ -18,10 +18,20 @@ public sealed class MasterDataController : ApiBaseController
     public async Task<ActionResult<List<CustomerOut>>> SearchCustomers([FromQuery] string q)
         => Ok(await Svc().SearchCustomersAsync(q));
 
+    [HttpGet("customers/all")]
+    [RequireRole("viewer")]
+    public async Task<ActionResult<List<CustomerOut>>> ListAllCustomers()
+        => Ok(await Svc().ListAllCustomersAsync());
+
     [HttpGet("items")]
     [RequireRole("viewer")]
     public async Task<ActionResult<List<ItemOut>>> SearchItems([FromQuery] string q)
         => Ok(await Svc().SearchItemsAsync(q));
+
+    [HttpGet("items/all")]
+    [RequireRole("viewer")]
+    public async Task<ActionResult<List<ItemOut>>> ListAllItems()
+        => Ok(await Svc().ListAllItemsAsync());
 
     [HttpGet("warehouses")]
     [RequireRole("viewer")]

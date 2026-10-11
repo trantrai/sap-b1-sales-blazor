@@ -1,10 +1,10 @@
-@inject ApiClient Api
+@inject MasterDataCache MdCache
 
 <FluentAutocomplete TOption="ItemOut" TValue="ItemOut"
                     OnOptionsSearch="OnSearch"
                     OptionText="@(i => $"{i.ItemCode} — {i.ItemName}")"
                     @bind-SelectedItem="Selected"
-                    Placeholder="Gõ mã/tên hàng…"
+                    Placeholder="Gõ ít nhất 2 ký tự để tìm hàng…"
                     MaximumOptionsSearch="20" />
 
 @code {
@@ -13,8 +13,7 @@
 
     private async Task OnSearch(OptionsSearchEventArgs<ItemOut> e)
     {
-        e.Items = string.IsNullOrWhiteSpace(e.Text)
-            ? Enumerable.Empty<ItemOut>()
-            : await Api.SearchItemsAsync(e.Text) ?? new List<ItemOut>();
+        // Cache client: chỉ tìm khi nhập >= 2 ký tự, lọc trên bộ nhớ
+        e.Items = await MdCache.SearchItemsAsync(e.Text);
     }
 }

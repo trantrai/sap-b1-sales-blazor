@@ -1,6 +1,7 @@
 @page "/sync"
 @implements IDisposable
 @inject ApiClient Api
+@inject MasterDataCache MdCache
 @inject AuthState Auth
 @inject NavigationManager Nav
 
@@ -144,6 +145,8 @@
                         pollTimer?.Dispose();
                         pollTimer = null;
                         syncing = false;
+                        // Master data đã đổi → xoá cache client để lần tìm sau tải lại
+                        MdCache.Invalidate();
                         StateHasChanged();
                     }
                 });

@@ -156,6 +156,12 @@ public class ApiClient(HttpClient http, TokenStore tokens)
         => SendAsync<List<ItemOut>>(HttpMethod.Get,
             $"api/masterdata/items?q={Uri.EscapeDataString(q)}");
 
+    public Task<List<CustomerOut>?> ListAllCustomersAsync()
+        => SendAsync<List<CustomerOut>>(HttpMethod.Get, "api/masterdata/customers/all");
+
+    public Task<List<ItemOut>?> ListAllItemsAsync()
+        => SendAsync<List<ItemOut>>(HttpMethod.Get, "api/masterdata/items/all");
+
     public Task<List<WarehouseOut>?> ListWarehousesAsync()
         => SendAsync<List<WarehouseOut>>(HttpMethod.Get, "api/masterdata/warehouses");
 

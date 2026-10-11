@@ -20,6 +20,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBase)
 builder.Services.AddFluentUIComponents();
 builder.Services.AddScoped<TokenStore>();
 builder.Services.AddScoped<ApiClient>();
+builder.Services.AddScoped<MasterDataCache>();
 builder.Services.AddScoped<AuthState>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<AuthState>());
 builder.Services.AddAuthorizationCore();

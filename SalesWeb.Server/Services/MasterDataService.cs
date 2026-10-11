@@ -25,6 +25,32 @@ public sealed class MasterDataService
     private static void CacheSet(string key, object value)
         => Cache[key] = (DateTime.UtcNow, value);
 
+    public async Task<List<CustomerOut>> ListAllCustomersAsync()
+    {
+        const string key = "cust:__all__";
+        var hit = CacheGet<List<CustomerOut>>(key);
+        if (hit is not null) return hit;
+        List<CustomerOut> out_;
+        if (MdStore.Count("customers") > 0)
+        {
+            out_ = MdStore.SearchCustomers("", top: 5000).Select(r => new CustomerOut
+            {
+                CardCode = B1Json.Str(r, "card_code"),
+                CardName = B1Json.Str(r, "card_name"),
+                Phone = B1Json.Str(r, "phone"),
+                SalesPersonCode = B1Json.IntN(r, "sales_person_code"),
+                PriceListNum = B1Json.IntN(r, "price_list_num"),
+            }).ToList();
+        }
+        else
+        {
+            // Chưa đồng bộ: fallback sang search rỗng qua B1 (nếu B1 hỗ trợ)
+            out_ = await SearchCustomersAsync("");
+        }
+        CacheSet(key, out_);
+        return out_;
+    }
+
     public async Task<List<CustomerOut>> SearchCustomersAsync(string q)
     {
         var key = $"cust:{q.ToLowerInvariant()}";
@@ -88,6 +114,30 @@ public sealed class MasterDataService
                 SalesUnit = B1Json.Str(r, "SalesUnit"),
                 Price = B1Json.Num(r, "Price"),
             }).ToList();
+        }
+        CacheSet(key, out_);
+        return out_;
+    }
+
+    public async Task<List<ItemOut>> ListAllItemsAsync()
+    {
+        const string key = "item:__all__";
+        var hit = CacheGet<List<ItemOut>>(key);
+        if (hit is not null) return hit;
+        List<ItemOut> out_;
+        if (MdStore.Count("items") > 0)
+        {
+            out_ = MdStore.SearchItems("", top: 5000).Select(r => new ItemOut
+            {
+                ItemCode = B1Json.Str(r, "item_code"),
+                ItemName = B1Json.Str(r, "item_name"),
+                SalesUnit = B1Json.Str(r, "sales_unit"),
+                Price = B1Json.Num(r, "price"),
+            }).ToList();
+        }
+        else
+        {
+            out_ = await SearchItemsAsync("");
         }
         CacheSet(key, out_);
         return out_;

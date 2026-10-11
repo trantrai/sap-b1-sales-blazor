@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject AuthState Auth
 @inject ApiClient Api
+@inject MasterDataCache MdCache
 @inject NavigationManager Nav
 @inject IThemeService ThemeService
 
@@ -130,6 +131,8 @@
         }
         await RefreshModeAsync();
         await RefreshFailedAsync();
+        // Tải trước cache KH/hàng hoá nền — autocomplete phản hồi ngay, không chờ
+        _ = MdCache.PreloadAsync();
         Nav.LocationChanged += OnLocationChanged;
         timer = new System.Threading.Timer(async _ => await RefreshFailedAsync(),
             null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
