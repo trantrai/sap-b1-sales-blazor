@@ -75,3 +75,10 @@ SalesWeb.Shared/   DTO dùng chung (JSON snake_case)
 SalesWeb.Server/   ASP.NET Core API + phục vụ Blazor
 SalesWeb.Client/   Blazor WebAssembly + FluentBlazor (8 trang)
 ```
+
+## Tài liệu kỹ thuật
+
+- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database
+- [API payload chi tiết](docs/api-payload-chi-tiet.md) — endpoint, request/response từng API
+- [Màn hình — Sự kiện — API](docs/man-hinh-su-kien-api.md) — chi tiết từng màn hình và sự kiện
+- [Báo cáo QA UI/UX](docs/bao-cao-qa-ui-ux.md) — kết quả kiểm thử giao diện
