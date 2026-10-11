@@ -426,7 +426,7 @@ fluent-data-grid .column-header { background: #faf9f8; }
 .fm-nav-toggle { display: none; font-size: 18px; line-height: 1; }
 
 /* ============================================================
-   14. RESPONSIVE
+   14. RESPONSIVE — Tablet (≤900px)
    ============================================================ */
 @media (max-width: 900px) {
   /* Sidebar thành drawer trượt từ trái, mở bằng nút hamburger trên topbar */
@@ -442,19 +442,93 @@ fluent-data-grid .column-header { background: #faf9f8; }
     background: rgba(17, 16, 15, .38);
   }
   .fm-nav-toggle { display: inline-flex; }
-  .fm-topbar { padding: 0 12px; }
   .fm-page { padding: 14px; }
   .fm-form-grid { grid-template-columns: 1fr; }
-  /* Tổng tiền: xếp chồng, full width trên mobile */
+  /* Tổng tiền: xếp chồng, full width */
   .fm-submit-bar { flex-direction: column; align-items: stretch !important; }
   .fm-submit-bar .fm-totals { width: 100%; margin-left: 0; }
   .fm-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  /* Bảng dòng hàng: đặt min-width để các cột không bị đè lên nhau trên mobile */
+}
+
+/* ============================================================
+   15. RESPONSIVE — Điện thoại (≤600px)
+   ============================================================ */
+@media (max-width: 600px) {
+  /* ---- Topbar gọn: tiêu đề truncate, search xuống hàng 2 ---- */
+  .fm-topbar {
+    padding: 6px 8px 6px 4px;
+    min-height: 52px; height: auto;
+    flex-wrap: wrap; row-gap: 6px;
+  }
+  .fm-topbar__title {
+    font-size: 15px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 45vw;
+  }
+  .fm-topbar__user { gap: 4px; margin-left: auto; }
+  /* Ô search full-width ở hàng 2 */
+  .fm-topbar__user > div:first-child { order: 10; flex-basis: 100%; }
+  .fm-topbar__user fluent-text-input { width: 100% !important; }
+  .fm-topbar__user .fm-global-results {
+    position: fixed; top: 100px; left: 8px; right: 8px;
+    min-width: 0; max-width: none;
+  }
+  /* Badge B1 chỉ hiện chấm tròn, ẩn chữ */
+  .fm-topbar__user .fm-conn-banner {
+    padding: 4px 6px !important;
+    font-size: 0 !important;
+  }
+  .fm-topbar__user .fm-conn-banner .dot { margin: 0; }
+
+  /* ---- Page & Card ---- */
+  .fm-page { padding: 10px 8px 24px; }
+  .fm-card { padding: 12px; margin-bottom: 10px; border-radius: 10px; }
+  .fm-card__title { font-size: 15px; }
+  .fm-card__desc { font-size: 12px; margin-bottom: 10px; }
+
+  /* ---- Dashboard: KPI 2 cột ---- */
+  .fm-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fm-kpi { padding: 10px 8px; }
+  .fm-kpi__value { font-size: 20px; }
+  .fm-kpi .label { font-size: 11px; }
+
+  /* ---- Form: touch target đủ lớn ---- */
+  .fm-field { margin-bottom: 10px; }
+  .fm-label { font-size: 12.5px; margin-bottom: 4px; }
+  .fm-input-num { min-height: 40px; font-size: 15px; }
+  input, select, textarea { font-size: 15px !important; } /* chống iOS zoom */
+
+  /* ---- Filter bar xếp dọc ---- */
+  .fm-filterbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .fm-filterbar > * { width: 100% !important; max-width: none !important; }
+  .fm-filterbar fluent-button, .fm-filterbar button { width: 100%; min-height: 40px; }
+
+  /* ---- Bảng dữ liệu: cuộn ngang mượt, header sticky ---- */
+  .fm-table { font-size: 12.5px; }
+  .fm-table th, .fm-table td { padding: 8px 10px; }
+  .fm-table-wrap {
+    margin: 0 -8px; border-radius: 0;
+    border-left: none; border-right: none;
+  }
+  /* Bảng dòng hàng (form): giữ min-width để không đè cột */
   .fm-table-wrap .fm-table { min-width: 980px; table-layout: fixed; }
   .fm-table-wrap .fm-table td { white-space: nowrap; }
   .fm-table-wrap .fm-table td .fm-field,
   .fm-table-wrap .fm-table td fluent-autocomplete,
   .fm-table-wrap .fm-table td fluent-text-input { white-space: normal; }
+
+  /* ---- Nút bấm: đủ lớn để chạm ---- */
+  fluent-button, .fm-btn { min-height: 40px; }
+  .fm-submit-bar fluent-button { width: 100%; margin-bottom: 8px; }
+
+  /* ---- Pagination gọn ---- */
+  .fm-pagination { flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+  /* ---- Login card full width ---- */
+  .fm-login-card { margin: 12px; width: auto; }
+
+  /* ---- Tránh chữ quá nhỏ ---- */
+  body { -webkit-text-size-adjust: 100%; }
 }
 
 /* ===== C9: Tìm kiếm toàn cục ===== */

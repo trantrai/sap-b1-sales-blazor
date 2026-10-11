@@ -129,6 +129,7 @@
     private string PageTitle => GetRelativePath() switch
     {
         "" or "/" => "Danh sách đơn",
+        "/dashboard" => "Dashboard",
         "/orders/new" => "Tạo đơn hàng",
         "/sync" => "Đồng bộ dữ liệu",
         "/audit" => "Giám sát tích hợp",
