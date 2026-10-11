@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SalesWeb.Shared", "SalesWeb.Shared\SalesWeb.Shared.csproj", "{79C32A71-8C92-412B-8AEE-C7397B7F77E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SalesWeb.Client", "SalesWeb.Client\SalesWeb.Client.csproj", "{77117D16-04C2-4F71-AC39-1FE236FC8BD3}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SalesWeb.Server", "SalesWeb.Server\SalesWeb.Server.csproj", "{1E2C5E6B-B008-4720-A04D-553A485F7869}"
 EndProject
 Global
@@ -31,18 +29,6 @@ Global
 		{79C32A71-8C92-412B-8AEE-C7397B7F77E9}.Release|x64.Build.0 = Release|Any CPU
 		{79C32A71-8C92-412B-8AEE-C7397B7F77E9}.Release|x86.ActiveCfg = Release|Any CPU
 		{79C32A71-8C92-412B-8AEE-C7397B7F77E9}.Release|x86.Build.0 = Release|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Debug|x64.Build.0 = Debug|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Debug|x86.Build.0 = Debug|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Release|x64.ActiveCfg = Release|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Release|x64.Build.0 = Release|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Release|x86.ActiveCfg = Release|Any CPU
-		{77117D16-04C2-4F71-AC39-1FE236FC8BD3}.Release|x86.Build.0 = Release|Any CPU
 		{1E2C5E6B-B008-4720-A04D-553A485F7869}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1E2C5E6B-B008-4720-A04D-553A485F7869}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E2C5E6B-B008-4720-A04D-553A485F7869}.Debug|x64.ActiveCfg = Debug|Any CPU

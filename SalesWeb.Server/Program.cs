@@ -144,8 +144,8 @@ if (eff.B1Mock)
     logger.LogInformation("Đã nạp master data mock vào DB local");
 }
 
-// ---------- Blazor client ----------
-app.UseBlazorFrameworkFiles();
+// ---------- React client (thay Blazor) ----------
+app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapFallbackToFile("index.html");
 

@@ -9,7 +9,6 @@
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.20" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
@@ -17,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SalesWeb.Shared\SalesWeb.Shared.csproj" />
-    <ProjectReference Include="..\SalesWeb.Client\SalesWeb.Client.csproj" />
   </ItemGroup>
 
 </Project>
