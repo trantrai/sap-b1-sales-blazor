@@ -86,6 +86,9 @@ docker compose up -d --build   # http://localhost:8080
 ### Cài đặt kết nối (ngưỡng chiết khấu theo vai trò)
 ![Cài đặt kết nối](docs/screenshots/cai-dat.png)
 
+### Cài đặt Service Layer — chế độ SAP B1 thật (v2.2)
+![Cài đặt Service Layer live](docs/screenshots/cai-dat-live.png)
+
 ## Cấu trúc
 
 ```
