@@ -284,6 +284,10 @@ public sealed class OrderService
             OpenOrders = orders.Count(o => o.Status == "open"),
             ClosedOrders = orders.Count(o => o.Status == "closed"),
             CancelledOrders = orders.Count(o => o.Status == "cancelled"),
+            // Fix #5: ghi rõ phạm vi để UI hiển thị
+            ScopeNote = paged.Total > 1000
+                ? "Số liệu trong 1.000 đơn gần nhất"
+                : "Số liệu toàn bộ đơn hàng",
         };
         // Doanh thu 30 ngày gần nhất
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -314,9 +318,25 @@ public sealed class OrderService
                 Orders = g.Count(),
             })
             .OrderByDescending(t => t.Revenue).Take(5).ToList();
-        // Top 5 hàng hoá (cần chi tiết dòng — lấy từ orders đã có lines)
-        stats.TopItems = orders
-            .Where(o => o.Status != "cancelled")
+        // Top 5 hàng hoá — fix #5: nếu list không có lines (live B1),
+        // lấy chi tiết tối đa 50 đơn giá trị cao nhất để tính
+        var ordersWithLines = orders.Where(o => o.Status != "cancelled").ToList();
+        if (ordersWithLines.Count > 0 && ordersWithLines.All(o => o.Lines.Count == 0))
+        {
+            var topByValue = ordersWithLines.OrderByDescending(o => o.DocTotal).Take(50).ToList();
+            var withLines = new List<OrderOut>();
+            foreach (var o in topByValue)
+            {
+                try
+                {
+                    var (detail, _) = await GetAsync(o.DocEntry);
+                    if (detail is not null) withLines.Add(detail);
+                }
+                catch { /* bỏ qua đơn lỗi */ }
+            }
+            if (withLines.Count > 0) ordersWithLines = withLines;
+        }
+        stats.TopItems = ordersWithLines
             .SelectMany(o => o.Lines)
             .GroupBy(l => new { l.ItemCode, Name = l.Description })
             .Select(g => new TopItem

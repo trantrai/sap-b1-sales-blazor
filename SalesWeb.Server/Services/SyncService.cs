@@ -110,4 +110,54 @@ public sealed class SyncService
             if (Entities.Contains(e))
                 await SyncEntityAsync(e, b1, companyDb);
     }
+
+    // Fix #9: theo dõi job đồng bộ
+    private static readonly Dictionary<string, SyncJobInfo> Jobs = new();
+    private static readonly object JobsLock = new();
+
+    public static void TrackJob(string jobId, SyncJobInfo info)
+    {
+        lock (JobsLock)
+        {
+            // Giữ tối đa 50 job gần nhất
+            if (Jobs.Count >= 50)
+            {
+                var oldest = Jobs.OrderBy(kv => kv.Value.StartedAt).First().Key;
+                Jobs.Remove(oldest);
+            }
+            Jobs[jobId] = info;
+        }
+    }
+
+    public static SyncJobInfo? GetJob(string jobId)
+    {
+        lock (JobsLock) return Jobs.TryGetValue(jobId, out var j) ? j : null;
+    }
+
+    public static void FinishJob(string jobId, int totalRecords, string error)
+    {
+        lock (JobsLock)
+        {
+            if (Jobs.TryGetValue(jobId, out var j))
+            {
+                j.FinishedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                j.TotalRecords = totalRecords;
+                j.Error = error;
+            }
+        }
+    }
+}
+
+/// <summary>Thông tin job đồng bộ nền (fix #9).</summary>
+public sealed class SyncJobInfo
+{
+    public string JobId { get; set; } = "";
+    public string CompanyDb { get; set; } = "";
+    public string StartedBy { get; set; } = "";
+    public string StartedAt { get; set; } = "";
+    public string? FinishedAt { get; set; }
+    public int TotalRecords { get; set; }
+    public string Error { get; set; } = "";
+    public List<string> Entities { get; set; } = new();
+    public CancellationTokenSource? Cancellation { get; set; }
 }

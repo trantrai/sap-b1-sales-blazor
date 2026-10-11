@@ -135,6 +135,8 @@ public class DashboardStats
     public List<DailyRevenue> RevenueByDay { get; set; } = new();
     public List<TopCustomer> TopCustomers { get; set; } = new();
     public List<TopItem> TopItems { get; set; } = new();
+    /// <summary>Ghi chú phạm vi số liệu (fix #5): ví dụ "Số liệu trong 1.000 đơn gần nhất".</summary>
+    public string ScopeNote { get; set; } = "";
 }
 
 public class DailyRevenue

@@ -309,6 +309,10 @@ Luồng: Login → `MainLayout` preload nền → user gõ ≥2 ký tự → l�
 - `POST /api/auth/login` trả `access_token` + `refresh_token` (7 ngày, lưu SHA-256 hash) + `expires_in`.
 - `POST /api/auth/refresh`: xoay vòng (thu hồi token cũ, cấp cặp mới); `POST /api/auth/logout`: thu hồi.
 - Client `ApiClient`: tự gọi refresh 1 lần khi gặp 401 rồi thử lại request (có semaphore chống race).
+- **Lưu ý bảo mật (fix #10):** access/refresh token hiện lưu trong `localStorage` của trình duyệt —
+  phù hợp cho prototype/demo nội bộ. Khi triển khai production nên chuyển sang
+  cookie `HttpOnly; Secure; SameSite` cho refresh token + CSRF protection,
+  access token ngắn hạn giữ trong memory.
 
 **Audit người dùng (B6):**
 - Đã có sẵn `audit_logs` + `AuditLog.LogAction` — bổ sung tab "Thao tác người dùng" trong `AuditPage`

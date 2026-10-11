@@ -7,7 +7,12 @@
 
 <div class="fm-card" style="margin-bottom:14px">
     <h2 class="fm-card__title">Dashboard kinh doanh</h2>
-    <p class="fm-card__desc" style="margin-bottom:0">Tổng quan đơn hàng và doanh số — dữ liệu từ SAP B1.</p>
+    <p class="fm-card__desc" style="margin-bottom:0">Tổng quan đơn hàng và doanh số — dữ liệu từ SAP B1.
+        @if (!string.IsNullOrEmpty(stats?.ScopeNote))
+        {
+            <span style="color:var(--fm-text-2)">@stats.ScopeNote</span>
+        }
+    </p>
 </div>
 
 @if (loading)

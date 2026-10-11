@@ -60,21 +60,68 @@ public sealed class SyncController : ApiBaseController
             .Where(e => SyncService.Entities.Contains(e)).ToList();
         if (entities.Count == 0) entities = SyncService.Entities.ToList();
         // Fix #4: snapshot CompanyDB trước khi chạy nền — không truyền scoped proxy vào Task.Run
+        // Fix #9: tạo job có ID để theo dõi
         var companyDb = CurrentUser.CompanyDb;
         var username = CurrentUser.Username;
+        var jobId = Guid.NewGuid().ToString("N")[..12];
+        var cts = new CancellationTokenSource();
+        SyncService.TrackJob(jobId, new SyncJobInfo
+        {
+            JobId = jobId,
+            CompanyDb = companyDb ?? "",
+            StartedBy = username,
+            StartedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            Entities = entities,
+            Cancellation = cts,
+        });
         _ = Task.Run(async () =>
         {
+            var total = 0;
+            string error = "";
             try
             {
                 var b1 = _pool.GetClient(companyDb);
-                await _sync.SyncManyAsync(entities, b1, companyDb);
+                foreach (var e in entities)
+                {
+                    if (cts.Token.IsCancellationRequested) break;
+                    var (t, err) = await _sync.SyncEntityAsync(e, b1, companyDb);
+                    total += t;
+                    if (!string.IsNullOrEmpty(err)) error = err;
+                }
+                SyncService.FinishJob(jobId, total, error);
             }
-            catch (Exception ex) { _logger.LogError(ex, "Đồng bộ nền lỗi"); }
-        });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Đồng bộ nền lỗi");
+                SyncService.FinishJob(jobId, total, ex.Message);
+            }
+        }, cts.Token);
         return Ok(new SyncStartOut
         {
             Started = true,
+            JobId = jobId,
             Message = $"Đã bắt đầu đồng bộ: {string.Join(", ", entities.Select(e => SyncService.EntityLabel[e]))}",
+        });
+    }
+
+    /// <summary>Trạng thái job đồng bộ (fix #9).</summary>
+    [HttpGet("job/{jobId}")]
+    [RequireRole("viewer")]
+    public ActionResult<SyncJobOut> JobStatus(string jobId)
+    {
+        var job = SyncService.GetJob(jobId);
+        if (job is null) return NotFound();
+        return Ok(new SyncJobOut
+        {
+            JobId = job.JobId,
+            Status = job.FinishedAt is null ? "running" : (string.IsNullOrEmpty(job.Error) ? "done" : "error"),
+            CompanyDb = job.CompanyDb,
+            StartedBy = job.StartedBy,
+            StartedAt = job.StartedAt,
+            FinishedAt = job.FinishedAt,
+            TotalRecords = job.TotalRecords,
+            Error = job.Error,
+            Entities = job.Entities,
         });
     }
 }

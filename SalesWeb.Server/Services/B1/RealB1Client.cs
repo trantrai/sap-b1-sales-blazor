@@ -25,6 +25,8 @@ public sealed class RealB1Client : IB1Client, IAsyncDisposable
     private readonly string _externalIdUdf;
     private bool _loggedIn;
     private bool _disposed;
+    // Fix #8: serialize login để nhiều request đồng thời không login chồng nhau
+    private readonly SemaphoreSlim _loginGate = new(1, 1);
 
     public RealB1Client(string baseUrl, string companyDb, string username, string password,
         bool verifySsl = true, double timeoutSeconds = 30, string externalIdUdf = "U_ExternalID")
@@ -58,18 +60,25 @@ public sealed class RealB1Client : IB1Client, IAsyncDisposable
 
     public async Task LoginAsync()
     {
-        using var resp = await _http.PostAsJsonAsync("Login", new
+        await _loginGate.WaitAsync();
+        try
         {
-            CompanyDB = _companyDb,
-            UserName = _username,
-            Password = _password,
-        });
-        if (resp.StatusCode != HttpStatusCode.OK)
-        {
-            var text = await resp.Content.ReadAsStringAsync();
-            throw new B1Exception($"Login B1 thất bại ({(int)resp.StatusCode}): {text[..Math.Min(500, text.Length)]}");
+            // Double-check sau khi vào gate
+            if (_loggedIn) return;
+            using var resp = await _http.PostAsJsonAsync("Login", new
+            {
+                CompanyDB = _companyDb,
+                UserName = _username,
+                Password = _password,
+            });
+            if (resp.StatusCode != HttpStatusCode.OK)
+            {
+                var text = await resp.Content.ReadAsStringAsync();
+                throw new B1Exception($"Login B1 thất bại ({(int)resp.StatusCode}): {text[..Math.Min(500, text.Length)]}");
+            }
+            _loggedIn = true;
         }
-        _loggedIn = true;
+        finally { _loginGate.Release(); }
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path,
@@ -102,7 +111,8 @@ public sealed class RealB1Client : IB1Client, IAsyncDisposable
         var resp = await SendAsync(method, path, query, json, headers);
         if (resp.StatusCode == HttpStatusCode.Unauthorized)
         {
-            // session hết hạn -> login lại, retry 1 lần
+            // session hết hạn -> reset flag, login lại (có gate), retry 1 lần
+            _loggedIn = false;
             await LoginAsync();
             resp.Dispose();
             resp = await SendAsync(method, path, query, json, headers);

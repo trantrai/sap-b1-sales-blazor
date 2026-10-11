@@ -21,6 +21,21 @@ public class SyncStartOut
 {
     public bool Started { get; set; }
     public string Message { get; set; } = "";
+    /// <summary>ID job để theo dõi (fix #9).</summary>
+    public string JobId { get; set; } = "";
+}
+
+public class SyncJobOut
+{
+    public string JobId { get; set; } = "";
+    public string Status { get; set; } = ""; // running | done | error
+    public string CompanyDb { get; set; } = "";
+    public string StartedBy { get; set; } = "";
+    public string StartedAt { get; set; } = "";
+    public string? FinishedAt { get; set; }
+    public int TotalRecords { get; set; }
+    public string Error { get; set; } = "";
+    public List<string> Entities { get; set; } = new();
 }
 
 /// <summary>Trạng thái đồng bộ của một entity (khớp GET /api/sync/status của backend).</summary>
