@@ -136,3 +136,17 @@ Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.
 | F6 | Save settings → cache | ✅ InvalidateAll được gọi |
 
 Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.
+
+## Phụ lục QA v2.6 — Mobile fixes + thuế suất theo mặt hàng
+
+| # | Test case | Kết quả |
+|---|---|---|
+| M1 | Mobile 390×844: body scrollHeight > viewport | ✅ 8/8 trang cuộn được (dashboard 1286px, tạo đơn 1844px, cài đặt 2189px...) |
+| M2 | ItemSearch: chọn hàng → nhập SL → hàng còn giữ | ✅ `SelectedChanged` gọi `OnItemPicked`, `ln.PickedItem`/`ItemCode` được set |
+| M3 | Ô SL/Đơn giá/CK% trên mobile (native input) | ✅ Gõ "25" → nhận "25" (trước: FluentNumberInput shadow DOM không nhận phím) |
+| M4 | Bảng dòng hàng mobile không đè cột | ✅ `min-width:980px` + cuộn ngang, các cột giữ đúng width |
+| M5 | Chọn mặt hàng → thuế suất tự load | ✅ `OnItemPicked` set `ln.TaxCode` từ `ItemOut.TaxCode` (mock: S1) |
+| M6 | Grid 2 cột phần Thông tin chung | ✅ Tạo đơn (§1, §3) + Chi tiết đơn dùng `.fm-grid-2`; <600px về 1 cột |
+| M7 | Migration `md_items.tax_code` trên DB cũ | ✅ `ALTER TABLE ADD COLUMN` khi cột chưa tồn tại, dữ liệu cũ giữ nguyên |
+
+Build: `dotnet build` 0 lỗi. Ảnh giao diện chụp lại toàn bộ (10 ảnh, `blazor-error-ui: none`).
