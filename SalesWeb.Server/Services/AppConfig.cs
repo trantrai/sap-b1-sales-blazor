@@ -90,32 +90,39 @@ public sealed class AppConfig
             throw new InvalidOperationException(
                 "ADMIN_PASSWORD must be changed from the default when B1_MOCK=false.");
         // M3: validate B1 live settings — fail-fast toàn bộ
-        if (B1Password == "changeme" ||
-            B1Password.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "B1_PASSWORD must be set to the real Service Layer password when B1_MOCK=false.");
-        if (B1ServiceLayerUrl.Contains("your-b1-server", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "B1_SERVICE_LAYER_URL must be set to the real server when B1_MOCK=false.");
-        if (!Uri.TryCreate(B1ServiceLayerUrl, UriKind.Absolute, out var uri) ||
+        ValidateLiveSettings(B1ServiceLayerUrl, B1Password, B1CompanyDb, B1Username, B1VerifySsl);
+    }
+
+    /// <summary>
+    /// P1-4: validation dùng chung cho startup (AppConfig) và runtime save (ConnService).
+    /// Ném InvalidOperationException/ArgumentException nếu settings không đạt.
+    /// </summary>
+    public static void ValidateLiveSettings(string url, string password,
+        string companyDb, string username, bool verifySsl)
+    {
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "";
+        var isProd = env.Equals("Production", StringComparison.OrdinalIgnoreCase);
+        void Fail(string msg) => throw new InvalidOperationException(msg);
+
+        if (password == "changeme" ||
+            password.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            Fail("B1_PASSWORD must be set to the real Service Layer password (not placeholder).");
+        if (url.Contains("your-b1-server", StringComparison.OrdinalIgnoreCase))
+            Fail("B1_SERVICE_LAYER_URL must be set to the real server (not placeholder).");
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != "https" && uri.Scheme != "http"))
-            throw new InvalidOperationException(
-                "B1_SERVICE_LAYER_URL must be a valid http(s) URL when B1_MOCK=false.");
+            Fail("B1_SERVICE_LAYER_URL must be a valid http(s) URL.");
         // P2-5: Production bắt buộc HTTPS (tránh lộ B1 credentials qua HTTP)
         if (uri.Scheme == "http" && isProd && Environment.GetEnvironmentVariable("B1_ALLOW_HTTP") != "1")
-            throw new InvalidOperationException(
-                "B1_SERVICE_LAYER_URL must use HTTPS in Production (or set B1_ALLOW_HTTP=1 explicitly).");
-        if (string.IsNullOrWhiteSpace(B1CompanyDb))
-            throw new InvalidOperationException(
-                "B1_COMPANY_DB is required when B1_MOCK=false.");
-        if (string.IsNullOrWhiteSpace(B1Username))
-            throw new InvalidOperationException(
-                "B1_USERNAME is required when B1_MOCK=false.");
+            Fail("B1_SERVICE_LAYER_URL must use HTTPS in Production (or set B1_ALLOW_HTTP=1 explicitly).");
+        if (string.IsNullOrWhiteSpace(companyDb))
+            Fail("B1_COMPANY_DB is required.");
+        if (string.IsNullOrWhiteSpace(username))
+            Fail("B1_USERNAME is required.");
         // SSL verification chỉ được tắt ở Development hoặc có cờ xác nhận rõ ràng
-        if (!B1VerifySsl && Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "Development" &&
+        if (!verifySsl && env != "Development" &&
             Environment.GetEnvironmentVariable("B1_ALLOW_INSECURE_SSL") != "1")
-            throw new InvalidOperationException(
-                "B1_VERIFY_SSL=false requires ASPNETCORE_ENVIRONMENT=Development or B1_ALLOW_INSECURE_SSL=1.");
+            Fail("B1_VERIFY_SSL=false requires ASPNETCORE_ENVIRONMENT=Development or B1_ALLOW_INSECURE_SSL=1.");
     }
 }
 

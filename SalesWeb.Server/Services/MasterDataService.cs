@@ -32,6 +32,18 @@ public sealed class MasterDataService
     private static void CacheSet(string key, object value)
         => Cache[key] = (DateTime.UtcNow, value);
 
+    /// <summary>P2-4: xoá cache theo CompanyDB (khi đổi settings/database).</summary>
+    public static void InvalidateCompany(string companyDb)
+    {
+        var prefix = (string.IsNullOrWhiteSpace(companyDb) ? "" : companyDb.Trim()) + ":";
+        foreach (var k in Cache.Keys)
+            if (k.StartsWith(prefix, StringComparison.Ordinal))
+                Cache.TryRemove(k, out _);
+    }
+
+    /// <summary>P2-4: xoá toàn bộ cache (khi đổi connection settings).</summary>
+    public static void InvalidateAll() => Cache.Clear();
+
     public async Task<List<CustomerOut>> ListAllCustomersAsync()
     {
         var key = CacheKey("cust:__all__");
@@ -177,7 +189,7 @@ public sealed class MasterDataService
 
     public async Task<List<PaymentTermOut>> ListPaymentTermsAsync()
     {
-        var hit = CacheGet<List<PaymentTermOut>>("payment_terms");
+        var hit = CacheGet<List<PaymentTermOut>>(CacheKey("payment_terms"));
         if (hit is not null) return hit;
         List<Dictionary<string, object?>> rows;
         try { rows = await _b1.ListPaymentTermsAsync(); }
@@ -193,7 +205,7 @@ public sealed class MasterDataService
 
     public async Task<List<ShippingTypeOut>> ListShippingTypesAsync()
     {
-        var hit = CacheGet<List<ShippingTypeOut>>("shipping_types");
+        var hit = CacheGet<List<ShippingTypeOut>>(CacheKey("shipping_types"));
         if (hit is not null) return hit;
         List<Dictionary<string, object?>> rows;
         try { rows = await _b1.ListShippingTypesAsync(); }
@@ -209,7 +221,7 @@ public sealed class MasterDataService
 
     public async Task<List<SalesPersonOut>> ListSalesPersonsAsync()
     {
-        var hit = CacheGet<List<SalesPersonOut>>("sales_persons");
+        var hit = CacheGet<List<SalesPersonOut>>(CacheKey("sales_persons"));
         if (hit is not null) return hit;
         List<Dictionary<string, object?>> rows;
         try { rows = await _b1.ListSalesPersonsAsync(); }

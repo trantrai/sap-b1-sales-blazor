@@ -36,7 +36,7 @@ public sealed class AuditController : ApiBaseController
     };
 
     [HttpGet("")]
-    [RequireRole("viewer")]
+    [RequireRole("manager")]
     public ActionResult<PagedAudit> List(
         [FromQuery] string operation = "",
         [FromQuery] string status = "",
@@ -54,12 +54,12 @@ public sealed class AuditController : ApiBaseController
     }
 
     [HttpGet("failed-count")]
-    [RequireRole("viewer")]
+    [RequireRole("manager")]
     public ActionResult<FailedCountOut> FailedCount()
         => Ok(new FailedCountOut { Failed = SlAuditStore.CountFailed() });
 
     [HttpGet("{id:long}")]
-    [RequireRole("viewer")]
+    [RequireRole("manager")]
     public ActionResult<AuditDetailOut> Get(long id)
     {
         var r = SlAuditStore.Get(id)

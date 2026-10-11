@@ -115,6 +115,7 @@ Controllers giữ nguyên DI `IB1Client`, không cần sửa khi thêm database 
 | AD-17 | Dashboard TopItems bounded concurrency (v2.3) | Khi list B1 không có `DocumentLines`: fetch detail 50 đơn giá trị cao nhất, tối đa 5 song song, timeout 30s (M5) | Fetch tuần tự — chậm 50× round-trip |
 | AD-18 | Fail-closed migration + dashboard ownership (v2.4) | Migration `md_sync_log`: add-column `company_db` **trước** tạo index (P0-1); `GET /api/orders/stats` scope theo `SalesPersonCode` của sales + `ScopeNote` "của bạn" (P0-2); timeout TopItems chỉ làm rỗng TopItems, không fail KPI (P1-2) | Index trước column → upgrade fail; dashboard lộ dữ liệu cross-sales |
 | AD-19 | Production hardening (v2.4) | `B1_MOCK=true` ở Production cần `ALLOW_DEMO_MOCK=1` (P1-5); B1 URL live ở Production bắt buộc HTTPS trừ khi `B1_ALLOW_HTTP=1` (P2-5); SyncPage xử lý 404/network trong timer (P1-3); SVG chart dùng CSS class cho dark mode (P2-1) | Mock chạy im lặng ở prod; HTTP lộ credentials |
+| AD-20 | Final review fixes (v2.5) | Cache `payment_terms`/`shipping_types`/`sales_persons` dùng key có CompanyDB (P0-1); integration audit yêu cầu `manager` (P1-1); sync job finalize trong `finally` + dispose CTS (P1-3); `ConnService.Save` dùng chung `ValidateLiveSettings` (P1-4); login chỉ prefill demo khi mock mode (P2-2); invalidate cache khi đổi settings (P2-4) | Cross-tenant cache; audit lộ dữ liệu user khác |
 
 ---
 

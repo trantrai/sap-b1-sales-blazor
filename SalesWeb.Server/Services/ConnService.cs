@@ -120,6 +120,13 @@ public sealed class ConnService
                 throw new ArgumentException("CompanyDB không được để trống");
             if (string.IsNullOrWhiteSpace(data.B1Username))
                 throw new ArgumentException("Tên đăng nhập B1 không được để trống");
+            // P1-4: dùng chung policy với startup validation
+            AppConfig.ValidateLiveSettings(
+                url,
+                data.B1Password ?? "",
+                data.B1CompanyDb ?? "",
+                data.B1Username ?? "",
+                data.B1VerifySsl);
         }
         var timeout = Math.Min(Math.Max(data.B1Timeout == 0 ? 30 : data.B1Timeout, 5), 120);
 
@@ -148,6 +155,8 @@ public sealed class ConnService
         Put("b1_verify_ssl", data.B1VerifySsl ? "1" : "0");
         Put("b1_timeout", timeout.ToString(System.Globalization.CultureInfo.InvariantCulture));
         tx.Commit();
+        // P2-4: đổi connection settings → xoá toàn bộ master data cache
+        MasterDataService.InvalidateAll();
         return GetPublic();
     }
 

@@ -76,6 +76,8 @@ public sealed class SyncController : ApiBaseController
             Entities = entities,
             Cancellation = cts,
         });
+        // P1-3: không truyền token vào Task.Run để delegate không bị skip mà không finalize.
+        // Cancellation được kiểm tra trong vòng lặp; đảm bảo FinishJob luôn được gọi.
         _ = Task.Run(async () =>
         {
             var total = 0;
@@ -85,19 +87,28 @@ public sealed class SyncController : ApiBaseController
                 var b1 = _pool.GetClient(companyDb);
                 foreach (var e in entities)
                 {
-                    if (cts.Token.IsCancellationRequested) break;
+                    if (cts.Token.IsCancellationRequested)
+                    {
+                        error = "Đã huỷ bởi người dùng";
+                        break;
+                    }
                     var (t, err) = await _sync.SyncEntityAsync(e, b1, companyDb);
                     total += t;
                     if (!string.IsNullOrEmpty(err)) error = err;
                 }
-                SyncService.FinishJob(jobId, total, error);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Đồng bộ nền lỗi");
-                SyncService.FinishJob(jobId, total, ex.Message);
+                error = ex.Message;
             }
-        }, cts.Token);
+            finally
+            {
+                // P1-3: luôn finalize — job không bao giờ kẹt ở running
+                SyncService.FinishJob(jobId, total, error);
+                cts.Dispose();
+            }
+        });
         return Ok(new SyncStartOut
         {
             Started = true,

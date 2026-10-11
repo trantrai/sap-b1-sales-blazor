@@ -123,3 +123,16 @@ Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.
 | R6 | SVG chart dark mode | ✅ Dùng CSS class `fm-chart-bar*`, `fm-chart-label`, `fm-chart-axis` |
 
 Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.
+
+## Phụ lục QA v2.5 — Final review fixes
+
+| # | Test case | Kết quả |
+|---|---|---|
+| F1 | Cache payment_terms/shipping_types/sales_persons dùng key có CompanyDB | ✅ Không còn cross-tenant |
+| F2 | Viewer gọi GET /api/audit | ✅ 403 (yêu cầu manager) |
+| F3 | Sync job finalize trong finally | ✅ Không kẹt running |
+| F4 | ConnService.Save với password placeholder | ✅ Bị chặn bởi ValidateLiveSettings |
+| F5 | Login ở live mode | ✅ Không prefill admin/admin123 |
+| F6 | Save settings → cache | ✅ InvalidateAll được gọi |
+
+Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.

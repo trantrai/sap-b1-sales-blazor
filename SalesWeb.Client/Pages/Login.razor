@@ -51,8 +51,8 @@
 </div>
 
 @code {
-    private string username = "admin";
-    private string password = "admin123";
+    private string username = "";
+    private string password = "";
     private string companyDb = "";
     private List<DbEntry> databases = new();
     private string error = "";
@@ -65,6 +65,13 @@
             Nav.NavigateTo("/");
         try
         {
+            // P2-2: chỉ prefill demo credentials khi server đang ở mock mode
+            var health = await Api.GetHealthAsync();
+            if (health?.B1Mode == "mock")
+            {
+                username = "admin";
+                password = "admin123";
+            }
             var d = await Api.GetDatabasesAsync();
             if (d is not null)
             {

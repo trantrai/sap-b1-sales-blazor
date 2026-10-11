@@ -240,6 +240,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // P1-1: integration audit chỉ manager+ mới được xem
+        var authState = await Auth.GetAuthenticationStateAsync();
+        if (!Auth.HasRole("manager"))
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
         canRetry = Auth.HasRole("manager");
         await Load();
         timer = new System.Threading.Timer(async _ =>
