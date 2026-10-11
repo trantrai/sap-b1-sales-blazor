@@ -161,7 +161,7 @@
         finally { loading = false; }
     }
 
-    private void ApplyFilter() { skip = 0; SyncUrl(); }
+    private async Task ApplyFilter() { skip = 0; SyncUrl(); await Load(); }
 
     private bool exporting;
 
@@ -186,9 +186,9 @@
         finally { exporting = false; }
     }
 
-    private void OnFilterKey(KeyboardEventArgs e)
+    private async Task OnFilterKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") ApplyFilter();
+        if (e.Key == "Enter") await ApplyFilter();
     }
 
     private void PrevPage() { skip = Math.Max(0, skip - top); SyncUrl(); }
