@@ -88,6 +88,26 @@ else
         </div>
     </div>
 
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Ngưỡng chiết khấu theo vai trò</h2>
+        <p class="fm-card__desc">Chiết khấu tối đa (%) mỗi vai trò được áp cho đơn hàng. Vai trò admin không giới hạn.</p>
+        <div class="fm-form-grid">
+            <div class="fm-field">
+                <label class="fm-label">Sales tối đa (%)</label>
+                <FluentNumberInput @bind-Value="discSales" Min="0" Max="100" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Manager tối đa (%)</label>
+                <FluentNumberInput @bind-Value="discManager" Min="0" Max="100" Style="width:100%" />
+            </div>
+        </div>
+        <div style="margin-top:10px">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveLimits">
+                @(busy == "limits" ? "Đang lưu…" : "Lưu ngưỡng chiết khấu")
+            </FluentButton>
+        </div>
+    </div>
+
     <div style="display:flex; gap:10px">
         <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoTest">
             @(busy == "test" ? "Đang kiểm tra…" : "Kiểm tra kết nối")
@@ -115,8 +135,11 @@ else
     private double timeout = 30;
     private bool fromDb;
     private bool loading = true;
-    private string? busy; // "test" | "save"
+    private string? busy; // "test" | "save" | "limits"
     private Msg? msg;
+
+    private double discSales = 10;
+    private double discManager = 20;
 
     private bool IsMock => modeMock == "mock";
     private string modeMock = "mock";
@@ -143,6 +166,8 @@ else
                 timeout = d.B1Timeout;
                 fromDb = d.FromDb;
             }
+            var lim = await Api.GetDiscountLimitsAsync();
+            if (lim is not null) { discSales = lim.Sales; discManager = lim.Manager; }
         }
         catch (ApiException ex) { msg = new Msg(ex.Message, true); }
         finally { loading = false; }
@@ -164,6 +189,23 @@ else
                 Timeout = 10,
             });
             msg = new Msg(r?.Message ?? "", !(r?.Ok ?? false));
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+
+    private async Task DoSaveLimits()
+    {
+        busy = "limits"; msg = null;
+        try
+        {
+            var r = await Api.SaveDiscountLimitsAsync(new DiscountLimitsIn
+            {
+                Sales = discSales,
+                Manager = discManager,
+            });
+            if (r is not null) { discSales = r.Sales; discManager = r.Manager; }
+            msg = new Msg($"Đã lưu ngưỡng chiết khấu: sales ≤ {discSales}%, manager ≤ {discManager}%.", false);
         }
         catch (ApiException ex) { msg = new Msg(ex.Message, true); }
         finally { busy = null; }

@@ -75,4 +75,28 @@ public sealed class SettingsController : ApiBaseController
         var (ok, message) = await _conn.TestConnectionAsync(body);
         return Ok(new ConnTestOut { Ok = ok, Message = message });
     }
+
+    [HttpGet("discount-limits")]
+    [RequireRole("admin")]
+    public ActionResult<DiscountLimitsOut> GetDiscountLimits()
+    {
+        var l = _conn.GetDiscountLimits();
+        return Ok(new DiscountLimitsOut { Sales = l.Sales, Manager = l.Manager });
+    }
+
+    [HttpPut("discount-limits")]
+    [RequireRole("admin")]
+    public ActionResult<DiscountLimitsOut> SaveDiscountLimits([FromBody] DiscountLimitsIn body)
+    {
+        try
+        {
+            var l = _conn.SaveDiscountLimits(body.Sales, body.Manager);
+            AuditLog.LogAction(CurrentUser.Username, "settings.discount_limits", "Settings",
+                "discount_limits",
+                new Dictionary<string, object?> { ["sales"] = l.Sales, ["manager"] = l.Manager },
+                ClientIp);
+            return Ok(new DiscountLimitsOut { Sales = l.Sales, Manager = l.Manager });
+        }
+        catch (ArgumentException ex) { throw new ApiException(400, ex.Message); }
+    }
 }

@@ -213,6 +213,12 @@ public class ApiClient(HttpClient http, TokenStore tokens)
     public Task<ConnTestOut?> TestConnSettingsAsync(ConnTestIn t)
         => SendAsync<ConnTestOut>(HttpMethod.Post, "api/settings/connection/test", t);
 
+    public Task<DiscountLimitsOut?> GetDiscountLimitsAsync()
+        => SendAsync<DiscountLimitsOut>(HttpMethod.Get, "api/settings/discount-limits");
+
+    public Task<DiscountLimitsOut?> SaveDiscountLimitsAsync(DiscountLimitsIn l)
+        => SendAsync<DiscountLimitsOut>(HttpMethod.Put, "api/settings/discount-limits", l);
+
     public Task<HealthOut?> GetHealthAsync()
         => SendAsync<HealthOut>(HttpMethod.Get, "health", auth: false);
 }

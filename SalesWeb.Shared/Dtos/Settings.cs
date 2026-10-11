@@ -46,3 +46,16 @@ public class ConnSaveOut
     public string Mode { get; set; } = "mock";
     public string? Hint { get; set; }
 }
+
+/// <summary>Ngưỡng chiết khấu tối đa (%) theo vai trò. Admin không giới hạn.</summary>
+public class DiscountLimitsIn
+{
+    public double Sales { get; set; } = 10;
+    public double Manager { get; set; } = 20;
+}
+
+public class DiscountLimitsOut
+{
+    public double Sales { get; set; }
+    public double Manager { get; set; }
+}

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SalesWeb.Server.Data;
+using SalesWeb.Server.Middleware;
 using SalesWeb.Server.Services;
 using SalesWeb.Server.Services.B1;
 using SalesWeb.Shared.Dtos;
@@ -12,15 +13,38 @@ public sealed class OrdersController : ApiBaseController
 {
     private readonly IB1Client _b1;
     private readonly AppConfig _cfg;
+    private readonly ConnService _conn;
 
-    public OrdersController(IB1Client b1, AppConfig cfg)
+    public OrdersController(IB1Client b1, AppConfig cfg, ConnService conn)
     {
         _b1 = b1;
         _cfg = cfg;
+        _conn = conn;
     }
 
     private OrderService Svc(string username)
         => new(_b1, _cfg.ExternalIdUdf, username);
+
+    /// <summary>
+    /// Kiểm tra chiết khấu: 0–100%; ngưỡng theo vai trò cấu hình trong Settings
+    /// (mặc định sales ≤ 10%, manager ≤ 20%, admin không giới hạn).
+    /// </summary>
+    private void ValidateDiscounts(double headerDisc, IEnumerable<double> lineDiscs)
+    {
+        var all = lineDiscs.Prepend(headerDisc).ToList();
+        if (all.Any(d => d < 0 || d > 100))
+            throw new ApiException(400, "Chiết khấu phải nằm trong khoảng 0–100%.");
+        var role = CurrentUser.Role;
+        var limits = _conn.GetDiscountLimits();
+        double limit = role switch { "admin" => 100, "manager" => limits.Manager, _ => limits.Sales };
+        var over = all.FirstOrDefault(d => d > limit);
+        if (over > limit)
+            throw new ApiException(403,
+                $"Vai trò '{role}' chỉ được áp chiết khấu tối đa {FmtLimit(limit)}% (đang nhập {FmtLimit(over)}%).");
+    }
+
+    private static string FmtLimit(double n)
+        => n.ToString("N2", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
 
     [HttpGet("")]
     [RequireRole("viewer")]
@@ -60,6 +84,7 @@ public sealed class OrdersController : ApiBaseController
         // Mặc định gán NVKD tạo đơn
         if (body.SalesPersonCode is null && user.SalesPersonCode.HasValue)
             body.SalesPersonCode = user.SalesPersonCode;
+        ValidateDiscounts(body.DiscountPercent, body.Lines.Select(l => l.DiscountPercent));
         var (order, created) = await Svc(user.Username).CreateAsync(body);
         AuditLog.LogAction(user.Username, "order.create", "Orders", order.DocEntry.ToString(),
             new Dictionary<string, object?>
@@ -74,6 +99,9 @@ public sealed class OrdersController : ApiBaseController
     [RequireRole("sales")]
     public async Task<ActionResult<OrderOut>> Update(int docEntry, [FromBody] OrderUpdate body)
     {
+        if (body.DiscountPercent.HasValue || body.Lines?.Any(l => l.DiscountPercent.HasValue) == true)
+            ValidateDiscounts(body.DiscountPercent ?? 0,
+                (body.Lines ?? new()).Select(l => l.DiscountPercent ?? 0));
         var order = await Svc(CurrentUser.Username).UpdateAsync(docEntry, body);
         var detail = new Dictionary<string, object?>();
         if (body.Comments is not null) detail["comments"] = body.Comments;

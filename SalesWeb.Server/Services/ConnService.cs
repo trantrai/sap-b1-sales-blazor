@@ -151,6 +151,50 @@ public sealed class ConnService
         return GetPublic();
     }
 
+    // ---------------- ngưỡng chiết khấu theo vai trò ----------------
+    public record DiscountLimits(double Sales, double Manager);
+
+    private double DbDouble(string key, double dflt)
+    {
+        using var conn = Db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT value FROM app_settings WHERE key = $k";
+        cmd.Parameters.AddWithValue("$k", key);
+        var v = cmd.ExecuteScalar() as string;
+        return v is not null && double.TryParse(v,
+            System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : dflt;
+    }
+
+    /// <summary>Ngưỡng CK tối đa (%): sales mặc định 10, manager mặc định 20, admin không giới hạn.</summary>
+    public DiscountLimits GetDiscountLimits()
+        => new(DbDouble("disc_limit_sales", 10), DbDouble("disc_limit_manager", 20));
+
+    public DiscountLimits SaveDiscountLimits(double sales, double manager)
+    {
+        if (sales < 0 || sales > 100 || manager < 0 || manager > 100)
+            throw new ArgumentException("Ngưỡng chiết khấu phải nằm trong khoảng 0–100%.");
+        if (sales > manager)
+            throw new ArgumentException("Ngưỡng của vai trò sales không được lớn hơn manager.");
+        using var conn = Db.Open();
+        using var tx = conn.BeginTransaction();
+        foreach (var (k, v) in new[] { ("disc_limit_sales", sales), ("disc_limit_manager", manager) })
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                INSERT INTO app_settings (key, value, updated_at)
+                VALUES ($k, $v, datetime('now'))
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=datetime('now')
+                """;
+            cmd.Parameters.AddWithValue("$k", k);
+            cmd.Parameters.AddWithValue("$v", v.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return GetDiscountLimits();
+    }
+
     // ---------------- dùng runtime ----------------
     public IB1Client BuildClient()
     {

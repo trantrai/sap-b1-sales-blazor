@@ -64,6 +64,7 @@ else if (order is not null)
             <InfoRow Label="Địa chỉ giao hàng" Value="@order.ShipToCode" />
             <InfoRow Label="Địa chỉ hoá đơn" Value="@order.PayToCode" />
             <InfoRow Label="Dự án" Value="@order.Project" />
+            <InfoRow Label="Chiết khấu đơn hàng" Value="@FmtPct(order.DiscountPercent)" />
             <InfoRow Label="Tổng tiền" Strong="true" Value="@($"{FmtMoney(order.DocTotal)} {order.Currency}")" />
         </div>
 
@@ -126,6 +127,23 @@ else if (order is not null)
         </FluentDataGrid>
     </div>
 
+    <div class="fm-card" style="margin-top:14px">
+        <div class="fm-totals" style="margin-left:auto">
+            <div class="fm-totals__row">
+                <span>Tổng sau CK dòng</span>
+                <span>@FmtMoney(Subtotal) @order.Currency</span>
+            </div>
+            <div class="fm-totals__row">
+                <span>Chiết khấu đơn hàng (@FmtPct(order.DiscountPercent))</span>
+                <span>−@FmtMoney(HeaderDiscAmount) @order.Currency</span>
+            </div>
+            <div class="fm-totals__grand">
+                <span>TỔNG CỘNG</span>
+                <span>@FmtMoney(order.DocTotal) @order.Currency</span>
+            </div>
+        </div>
+    </div>
+
     <FluentButton Appearance="ButtonAppearance.Subtle" OnClick='() => Nav.NavigateTo("/")' Style="margin-top:12px">
         ← Về danh sách
     </FluentButton>
@@ -163,6 +181,12 @@ else if (order is not null)
     };
     private static string FmtMoney(double n) =>
         n.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
+    private static string FmtPct(double n) =>
+        // WASM chạy invariant globalization: "N2" cho "5.00" (dấu chấm), nên trim '.' thay vì ','
+        n.ToString("N2", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.') + "%";
+
+    private double Subtotal => order?.Lines.Sum(l => l.LineTotal ?? l.Quantity * l.Price * (1 - l.DiscountPercent / 100)) ?? 0;
+    private double HeaderDiscAmount => Subtotal * (order?.DiscountPercent ?? 0) / 100;
 
     protected override async Task OnParametersSetAsync()
     {

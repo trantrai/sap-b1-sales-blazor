@@ -43,6 +43,11 @@
                 <FluentDatePicker TValue="DateTime?" @bind-Value="docDueDate" Style="width:100%" />
             </div>
             <div class="fm-field">
+                <label class="fm-label">Chiết khấu đơn hàng (%)</label>
+                <FluentNumberInput @bind-Value="headerDiscount" Min="0" Max="100"
+                                   Placeholder="VD: 5" Style="width:100%" />
+            </div>
+            <div class="fm-field">
                 <label class="fm-label">Ghi chú</label>
                 <FluentTextInput @bind-Value="comments" Placeholder="Ghi chú đơn hàng…" Style="width:100%" />
             </div>
@@ -53,7 +58,7 @@
     <div class="fm-card" style="margin-bottom:14px">
         <h2 class="fm-card__title">2. Dòng hàng</h2>
         <p class="fm-card__desc">Thêm từng mặt hàng vào đơn</p>
-        <div class="fm-table-wrap" style="box-shadow:none">
+        <div class="fm-table-wrap" style="box-shadow:none; overflow-x:auto">
             <table class="fm-table">
                 <thead>
                     <tr>
@@ -61,6 +66,7 @@
                         <th>Hàng hoá <span style="color:var(--fm-red)">*</span></th>
                         <th class="fm-num" style="width:90px">SL *</th>
                         <th class="fm-num" style="width:130px">Đơn giá</th>
+                        <th class="fm-num" style="width:80px">CK %</th>
                         <th style="width:110px">Kho</th>
                         <th style="width:150px">Ngày giao</th>
                         <th style="width:130px">Thuế suất</th>
@@ -85,6 +91,11 @@
                             </td>
                             <td class="fm-num">
                                 <FluentNumberInput @bind-Value="ln.Price" Min="0"
+                                                   Style="text-align:right; width:100%" />
+                            </td>
+                            <td class="fm-num">
+                                <FluentNumberInput @bind-Value="ln.DiscountPercent" Min="0" Max="100"
+                                                   aria-label="@($"Chiết khấu dòng {i + 1} (phần trăm)")"
                                                    Style="text-align:right; width:100%" />
                             </td>
                             <td>
@@ -197,6 +208,14 @@
             @(busy ? "Đang tạo…" : "Tạo đơn hàng")
         </FluentButton>
         <div class="fm-totals">
+            <div class="fm-totals__row">
+                <span>Tổng sau CK dòng</span>
+                <span>@FmtMoney(subtotal) @docCurrency</span>
+            </div>
+            <div class="fm-totals__row">
+                <span>Chiết khấu đơn hàng (@FmtPct(headerDiscount))</span>
+                <span>−@FmtMoney(headerDiscAmount) @docCurrency</span>
+            </div>
             <div class="fm-totals__grand">
                 <span>TỔNG CỘNG</span>
                 <span>@FmtMoney(total) @docCurrency</span>
@@ -230,6 +249,7 @@
 
     private string? comments;
     private DateTime? docDueDate;
+    private double headerDiscount;
     private string? numAtCard;
     private DateTime? taxDate;
     private readonly string[] currencyOptions = new[] { "VND", "USD" };
@@ -249,9 +269,16 @@
         addresses.Where(a => a.AddressType != "bo_ShipTo");
 
     private static double LineTotal(LineVm l) => l.Quantity * l.Price * (1 - l.DiscountPercent / 100);
-    private double total => lines.Sum(LineTotal);
+    private double subtotal => lines.Sum(LineTotal);
+    private double headerDiscAmount => subtotal * headerDiscount / 100;
+    private double total => subtotal - headerDiscAmount;
+    private static string FmtPct(double n) =>
+        // WASM chạy invariant globalization: "N2" cho "5.00" (dấu chấm), nên trim '.' thay vì ','
+        n.ToString("N2", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.') + "%";
     private bool valid => customer is not null && lines.Count > 0
-        && lines.All(l => !string.IsNullOrEmpty(l.ItemCode) && l.Quantity > 0);
+        && headerDiscount >= 0 && headerDiscount <= 100
+        && lines.All(l => !string.IsNullOrEmpty(l.ItemCode) && l.Quantity > 0
+            && l.DiscountPercent >= 0 && l.DiscountPercent <= 100);
 
     private static string FmtMoney(double n) =>
         n.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
@@ -333,6 +360,7 @@
                 Comments = comments,
                 DocDueDate = ToDateOnly(docDueDate),
                 TaxDate = ToDateOnly(taxDate),
+                DiscountPercent = headerDiscount,
                 NumAtCard = numAtCard,
                 DocCurrency = docCurrency,
                 DocRate = docRate,
