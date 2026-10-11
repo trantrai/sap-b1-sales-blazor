@@ -556,3 +556,22 @@ body {
 html {
   overflow-x: clip;
 }
+
+/* ===== Input số native cho dòng hàng (fix FluentNumberInput không nhập được trên mobile) ===== */
+.fm-input-num {
+  width: 100%; min-width: 64px; min-height: 36px;
+  text-align: right; font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid var(--neutral-stroke-1, #d1d1d1);
+  border-radius: 4px;
+  background: var(--neutral-layer-1, #fff);
+  color: var(--neutral-foreground-1, #201f1e);
+  -moz-appearance: textfield; appearance: textfield;
+}
+.fm-input-num::-webkit-outer-spin-button,
+.fm-input-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fm-input-num:focus {
+  outline: none;
+  border-color: var(--accent-fill-rest, #1E3A5F);
+  box-shadow: 0 0 0 1px var(--accent-fill-rest, #1E3A5F);
+}

@@ -94,17 +94,17 @@
                                             SelectedChanged="@(it => OnItemPicked(i, it))" />
                             </td>
                             <td class="fm-num">
-                                <FluentNumberInput @bind-Value="ln.Quantity" Min="0"
-                                                   Style="text-align:right; width:100%" />
+                                <input type="number" class="fm-input-num" @bind="ln.Quantity" @bind:event="oninput"
+                                       min="0" step="any" aria-label="@($"Số lượng dòng {i + 1}")" />
                             </td>
                             <td class="fm-num">
-                                <FluentNumberInput @bind-Value="ln.Price" Min="0"
-                                                   Style="text-align:right; width:100%" />
+                                <input type="number" class="fm-input-num" @bind="ln.Price" @bind:event="oninput"
+                                       min="0" step="any" aria-label="@($"Đơn giá dòng {i + 1}")" />
                             </td>
                             <td class="fm-num">
-                                <FluentNumberInput @bind-Value="ln.DiscountPercent" Min="0" Max="100"
-                                                   aria-label="@($"Chiết khấu dòng {i + 1} (phần trăm)")"
-                                                   Style="text-align:right; width:100%" />
+                                <input type="number" class="fm-input-num" @bind="ln.DiscountPercent" @bind:event="oninput"
+                                       min="0" max="100" step="any"
+                                       aria-label="@($"Chiết khấu dòng {i + 1} (phần trăm)")" />
                             </td>
                             <td>
                                 <FluentSelect TValue="string" TOption="WarehouseOut"
