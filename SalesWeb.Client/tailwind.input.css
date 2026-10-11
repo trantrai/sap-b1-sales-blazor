@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom components với design system */
+@layer components {
+  .btn-primary {
+    @apply bg-brand-blue text-white font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] hover:bg-navy-700 transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-white text-slate-800 font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] border border-slate-200 hover:bg-slate-50 transition-colors;
+  }
+  .card {
+    @apply bg-white border border-[#eceef5] rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,.04),0_8px_24px_rgba(15,23,42,.04)];
+  }
+  .input-field {
+    @apply border-[1.5px] border-[#b7cae6] bg-[#f3f8ff] rounded-[10px] px-3 py-2.5 text-sm w-full;
+    box-shadow: inset 0 -3px 0 #ffc928;
+  }
+  .input-field:focus {
+    @apply outline-none border-brand-blue;
+  }
+  .form-label {
+    @apply text-xs font-semibold text-navy-900 mb-1 block;
+  }
+}
