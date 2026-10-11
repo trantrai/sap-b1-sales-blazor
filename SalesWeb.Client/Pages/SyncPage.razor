@@ -34,38 +34,30 @@
         }
     </div>
     <div class="fm-table-wrap">
-        <FluentDataGrid EmptyContent="@emptySync" Items="@rows.AsQueryable()" TGridItem="SyncEntityStatus" Style="width:100%">
+        <FluentDataGrid EmptyContent="@emptySync" Items="@rows.AsQueryable()" TGridItem="SyncTableOut" Style="width:100%">
             <TemplateColumn Title="Dữ liệu">
-                <span style="font-weight:600">@context.Label</span>
+                <span style="font-weight:600">@EntityLabel(context.Table)</span>
             </TemplateColumn>
             <TemplateColumn Title="Số bản ghi (local)" Align="DataGridCellAlignment.End">
                 <span style="font-variant-numeric:tabular-nums">@context.Count.ToString("N0", ViVn)</span>
             </TemplateColumn>
             <TemplateColumn Title="Đồng bộ lần cuối">
-                @(string.IsNullOrEmpty(context.LastFinishedAt) ? "—" : context.LastFinishedAt)
+                @(string.IsNullOrEmpty(context.LastSync) ? "—" : context.LastSync)
                 @if (context.LastRecords > 0)
                 {
                     <div style="font-size:11px; color:var(--fm-text-3)">
                         @context.LastRecords.ToString("N0", ViVn) bản ghi/lần
                     </div>
                 }
-                @if (!string.IsNullOrEmpty(context.LastError))
-                {
-                    <div style="font-size:11px; color:var(--fm-red)">@context.LastError</div>
-                }
             </TemplateColumn>
             <TemplateColumn Title="Trạng thái">
-                @if (context.Running)
+                @if (running)
                 {
                     <span class="fm-chip fm-chip--open">Đang đồng bộ…</span>
                 }
-                else if (context.LastStatus == "done")
+                else if (!string.IsNullOrEmpty(context.LastSync))
                 {
                     <span class="fm-chip fm-chip--perm-c">Thành công</span>
-                }
-                else if (context.LastStatus == "error")
-                {
-                    <span class="fm-chip fm-chip--perm-d">Lỗi</span>
                 }
                 else
                 {
@@ -77,8 +69,8 @@
                 {
                     <div style="text-align:right">
                         <FluentButton Appearance="ButtonAppearance.Outline"
-                                      Disabled="@(syncing || context.Running)"
-                                      OnClick="@(() => Start(new() { context.Entity }))">
+                                      Disabled="@(syncing || running)"
+                                      OnClick="@(() => Start(new() { context.Table }))">
                             Đồng bộ
                         </FluentButton>
                     </div>
@@ -95,13 +87,21 @@
 </div>
 
 @code {
+    private static string EntityLabel(string entity) => entity switch
+    {
+        "customers" => "Khách hàng",
+        "items" => "Hàng hoá",
+        "tax_codes" => "Thuế suất",
+        _ => entity,
+    };
     private RenderFragment emptySync = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Chưa có dữ liệu đồng bộ.</div>;
     private static readonly System.Globalization.CultureInfo ViVn =
         System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
 
-    private List<SyncEntityStatus> rows = new();
+    private List<SyncTableOut> rows = new();
     private bool loading = true;
     private bool syncing;
+    private bool running;
     private string error = "";
     private bool canSync;
     private System.Threading.Timer? pollTimer;
@@ -116,7 +116,9 @@
     {
         try
         {
-            rows = await Api.GetSyncStatusAsync() ?? new();
+            var st = await Api.GetSyncStatusAsync();
+            rows = st?.Tables ?? new();
+            running = st?.Running ?? false;
         }
         catch (ApiException ex)
         {
@@ -152,7 +154,7 @@
                     else
                     {
                         await Load();
-                        done = !rows.Any(r => r.Running);
+                        done = !running;
                     }
                     if (done)
                     {

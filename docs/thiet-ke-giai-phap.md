@@ -109,6 +109,10 @@ Controllers giữ nguyên DI `IB1Client`, không cần sửa khi thêm database 
 | AD-11 | Rate limiting (v2.2) | Dùng sẵn `Microsoft.AspNetCore.RateLimiting`: 300 req/phút chung, login 10/phút chống dò mật khẩu | Không giới hạn — dễ bị spam/brute-force |
 | AD-12 | Backup SQLite tự động (v2.2) | `BackgroundService` + `VACUUM INTO` mỗi 24h, giữ 7 bản — backup nhất quán ngay cả khi DB đang mở | Copy file thủ công (rủi ro DB đang ghi) |
 | AD-13 | Dashboard vẽ bằng SVG thuần (v2.2) | Không thêm dependency chart; đủ cho KPI + bar chart + top lists | Thêm Chart.js/ECharts (nặng, phức tạp hơn) |
+| AD-14 | Fail-closed authorization sales (v2.3) | NVKD **bắt buộc** có `SalesPersonCode`; thiếu mã → 403 trên list/get/patch/export; server luôn ghi đè `SalesPersonCode` bằng mã của user khi tạo đơn (P0-1/P0-2) | Fail-open: sales chưa map mã được xem toàn bộ đơn |
+| AD-15 | Sync status/job theo tenant (v2.3) | `md_sync_log` có `company_db`; `SyncStatus()`/`IsRunning()` lọc theo DB; `GET /api/sync/job/{id}` chỉ trả job cùng CompanyDB (khác → 404); SyncPage poll đúng job của mình qua JobId (M1/M2) | Status global — user DB A thấy dữ liệu DB B |
+| AD-16 | Fail-fast toàn bộ B1 live settings (v2.3) | Khi `B1_MOCK=false`: chặn JWT demo, admin password mặc định, B1 password placeholder, URL chứa `your-b1-server`/không hợp lệ, thiếu CompanyDB/username; `B1_VERIFY_SSL=false` cần Development hoặc `B1_ALLOW_INSECURE_SSL=1` (M3) | Chỉ validate JWT + admin password |
+| AD-17 | Dashboard TopItems bounded concurrency (v2.3) | Khi list B1 không có `DocumentLines`: fetch detail 50 đơn giá trị cao nhất, tối đa 5 song song, timeout 30s (M5) | Fetch tuần tự — chậm 50× round-trip |
 
 ---
 

@@ -200,14 +200,15 @@ hủy đơn, đóng dòng.
 |---|---|---|
 | 5.1 | Mở trang (`OnInitializedAsync` → `Load`) | Gọi API trạng thái đồng bộ |
 | 5.2 | Chọn entity cần đồng bộ (checkbox: customers, items, tax_codes...) | bind danh sách `entities` |
-| 5.3 | Bấm "Đồng bộ" (`Start`) | Gọi API trigger sync, hiển thị tiến trình |
+| 5.3 | Bấm "Đồng bộ" (`Start`) | Gọi API trigger sync → nhận `job_id`, poll `GET /api/sync/job/{job_id}` mỗi 2s cho đúng job của tenant; khi done/error thì tải lại status và xoá cache master data |
 
 **API:**
 
 | Method | Endpoint | Body | Kết quả |
 |---|---|---|---|
-| GET | `/api/sync/status` | — | `[{"entity","last_sync","count",...}]` |
-| POST | `/api/sync` | `{"entities":["customers","items","tax_codes"]}` | `{"ok":true,"synced":{...}}` |
+| GET | `/api/sync/status` | — | `[{"entity","last_sync","count",...}]` — **v2.3:** lọc theo CompanyDB |
+| POST | `/api/sync` | `{"entities":["customers","items","tax_codes"]}` | `{"started":true,"job_id":"...","message":"..."}` — **v2.3:** thêm job_id |
+| GET | `/api/sync/job/{jobId}` | — | `{"job_id","status":"running\|done\|error","total_records","error",...}` — **v2.3** |
 
 **Phân quyền:** yêu cầu vai trò `manager` trở lên.
 

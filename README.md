@@ -50,10 +50,11 @@ docker compose up -d --build   # http://localhost:8080
 - Audit mọi thao tác Service Layer + retry thông minh (`/audit`)
 - Auth JWT + RBAC 4 cấp: viewer < sales < manager < admin
 - Cài đặt kết nối B1 runtime (mật khẩu mã hóa AES-GCM), quản lý user
+- **Bảo mật v2.3**: sales bắt buộc có mã NVKD (thiếu → 403), server ghi đè mã NVKD khi tạo đơn, sync status/job theo CompanyDB, fail-fast toàn bộ cấu hình B1 khi chạy live
 
 ## Màn hình
 
-### Dashboard (v2.2)
+### Dashboard (v2.2, cập nhật v2.3)
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ### Dashboard — chế độ tối (v2.2)
@@ -99,7 +100,7 @@ SalesWeb.Client/   Blazor WebAssembly + FluentBlazor (8 trang)
 
 ## Tài liệu kỹ thuật
 
-- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database, cache client, icon, v2.2 (dashboard, refresh token, rate limit, backup, dark mode)
+- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database, cache client, icon, v2.2 (dashboard, refresh token, rate limit, backup, dark mode), v2.3 (AD-14→AD-17: fail-closed sales, sync theo tenant, fail-fast B1 live)
 - [API payload chi tiết](docs/api-payload-chi-tiet.md) — endpoint, request/response từng API (kể cả `auth/refresh`, `orders/stats`, `orders/export`)
 - [Màn hình — Sự kiện — API](docs/man-hinh-su-kien-api.md) — chi tiết từng màn hình và sự kiện (kể cả Dashboard, tab audit người dùng)
-- [Báo cáo QA UI/UX](docs/bao-cao-qa-ui-ux.md) — kết quả kiểm thử giao diện (v2.0 + phụ lục QA v2.2)
+- [Báo cáo QA UI/UX](docs/bao-cao-qa-ui-ux.md) — kết quả kiểm thử giao diện (v2.0 + phụ lục QA v2.2 + phụ lục QA v2.3 security review)

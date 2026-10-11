@@ -257,8 +257,8 @@ public class ApiClient(HttpClient http, TokenStore tokens)
             $"api/masterdata/customers/{Uri.EscapeDataString(cardCode)}/contacts");
 
     // ---------------- Sync ----------------
-    public Task<List<SyncEntityStatus>?> GetSyncStatusAsync()
-        => SendAsync<List<SyncEntityStatus>>(HttpMethod.Get, "api/sync/status");
+    public Task<SyncStatusOut?> GetSyncStatusAsync()
+        => SendAsync<SyncStatusOut>(HttpMethod.Get, "api/sync/status");
 
     public Task<SyncStartOut?> TriggerSyncAsync(List<string> entities)
         => SendAsync<SyncStartOut>(HttpMethod.Post, "api/sync", new { entities });

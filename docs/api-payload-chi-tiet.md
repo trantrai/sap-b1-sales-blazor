@@ -238,10 +238,15 @@ Response `200` — file `application/vnd.openxmlformats-officedocument.spreadshe
 ## 4. Đồng bộ & giám sát
 
 ### GET /api/sync/status — Trạng thái đồng bộ
-**Quyền:** manager+. Response: `[{ "entity": "customers", "label": "Khách hàng", "count": 1250, "last_finished_at": "...", ... }]`
+**Quyền:** viewer+. **v2.3:** lọc theo `CompanyDB` của user hiện tại (count, last sync, running của đúng DB). Response: `[{ "entity": "customers", "label": "Khách hàng", "count": 1250, "last_finished_at": "...", ... }]`
 
 ### POST /api/sync — Trigger đồng bộ
 **Quyền:** manager+. **Request:** `{ "entities": ["customers", "items", "tax_codes"] }`
+**v2.3:** response thêm `job_id`; job được theo dõi theo tenant.
+
+### GET /api/sync/job/{jobId} — Trạng thái job (v2.3)
+**Quyền:** viewer+. Chỉ trả job thuộc `CompanyDB` của user (khác DB → 404).
+**Response:** `{ "job_id": "...", "status": "running|done|error", "started_by": "...", "started_at": "...", "finished_at": "...", "total_records": 0, "error": "", "entities": [...] }`
 
 ### GET /api/audit — Nhật ký Service Layer
 **Quyền:** sales+. **Query:** `operation`, `status`, `q`, `limit`.

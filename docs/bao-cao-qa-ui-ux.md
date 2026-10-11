@@ -93,3 +93,20 @@ Issue đã sửa trong đợt QA:
 - Tab audit không đổi nội dung → chuyển sang `@bind-ActiveTabId` + `StateHasChanged()` sau load.
 
 Build: `dotnet build` 0 lỗi.
+
+---
+
+## Phụ lục QA v2.3 — Security review (round 2)
+
+| # | Test case | Kết quả |
+|---|---|---|
+| S1 | Sales không có `SalesPersonCode` gọi GET list/detail/PATCH/export | ✅ 403 "Tài khoản chưa được gán nhân viên kinh doanh" |
+| S2 | Sales có mã 99 tạo đơn với `SalesPersonCode=77` (giả mạo) | ✅ Server ghi đè → đơn có mã 99 |
+| S3 | Sales mã 99 xem đơn mã 1 | ✅ 403 "Bạn chỉ được thao tác đơn hàng của mình" |
+| S4 | Sync status theo CompanyDB | ✅ Count/log/running lọc theo DB |
+| S5 | Job status khác CompanyDB | ✅ 404 (không lộ tồn tại) |
+| S6 | `B1_MOCK=false` thiếu JWT secret | ✅ Fail-fast rõ ràng |
+| S7 | Dashboard scope note | ✅ "Số liệu toàn bộ đơn hàng" / "Số liệu trong 1.000 đơn gần nhất" |
+| S8 | Dark mode KPI colors | ✅ CSS class semantic, có biến thể dark |
+
+Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.
