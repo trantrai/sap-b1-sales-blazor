@@ -56,6 +56,9 @@ docker compose up -d --build   # http://localhost:8080
 ### Dashboard (v2.2)
 ![Dashboard](docs/screenshots/dashboard.png)
 
+### Dashboard — chế độ tối (v2.2)
+![Dashboard dark mode](docs/screenshots/dashboard-dark.png)
+
 ### Đăng nhập
 ![Đăng nhập](docs/screenshots/login.png)
 
@@ -73,6 +76,9 @@ docker compose up -d --build   # http://localhost:8080
 
 ### Giám sát tích hợp
 ![Giám sát tích hợp](docs/screenshots/giam-sat-tich-hop.png)
+
+### Giám sát — tab thao tác người dùng (v2.2)
+![Audit người dùng](docs/screenshots/audit-nguoi-dung.png)
 
 ### Người dùng & phân quyền
 ![Người dùng & phân quyền](docs/screenshots/nguoi-dung.png)

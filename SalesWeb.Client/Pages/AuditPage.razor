@@ -16,7 +16,7 @@
     </p>
 </div>
 
-<FluentTabs ActiveTabId="@activeTab" OnTabChange="OnTabChange" Style="margin-bottom:14px">
+<FluentTabs @bind-ActiveTabId="activeTab" Style="margin-bottom:14px">
     <FluentTab Id="sl" Header="Service Layer"
                IconStart="@(new Icons.Regular.Size20.CloudLink())" />
     <FluentTab Id="user" Header="Thao tác người dùng"
@@ -269,16 +269,19 @@ else
     }
 
     // ---------- Tab "Thao tác người dùng" (B6) ----------
-    private string activeTab = "sl";
+    private string _activeTab = "sl";
+    private string activeTab
+    {
+        get => _activeTab;
+        set
+        {
+            _activeTab = value;
+            if (value == "user" && userItems.Count == 0)
+                _ = LoadUserAudit();
+        }
+    }
     private List<Dictionary<string, object>> userItems = new();
     private string? userQ;
-
-    private void OnTabChange(TabChangeEventArgs e)
-    {
-        activeTab = e.ActiveId ?? "sl";
-        if (activeTab == "user" && userItems.Count == 0)
-            _ = LoadUserAudit();
-    }
 
     private IEnumerable<Dictionary<string, object>> FilteredUserAudit
     {
@@ -297,6 +300,7 @@ else
     {
         try { userItems = await Api.ListUserAuditAsync() ?? new(); }
         catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        StateHasChanged();
     }
 
     private async Task OnUserSearchKey(KeyboardEventArgs e)

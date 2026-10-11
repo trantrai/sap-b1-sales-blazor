@@ -164,7 +164,7 @@
         try
         {
             var dark = await JS.InvokeAsync<string?>("localStorage.getItem", "sw_dark");
-            if (dark == "1") { isDark = true; await JS.InvokeVoidAsync("Blazor.theme.setDarkMode", true); }
+            if (dark == "1") { isDark = true; await JS.InvokeVoidAsync("Blazor.theme.setThemeMode", "dark"); }
         }
         catch { /* bỏ qua */ }
         Nav.LocationChanged += OnLocationChanged;
@@ -208,7 +208,7 @@
         isDark = !isDark;
         try
         {
-            await JS.InvokeVoidAsync("Blazor.theme.setDarkMode", isDark);
+            await JS.InvokeVoidAsync("Blazor.theme.setThemeMode", isDark ? "dark" : "light");
             await JS.InvokeVoidAsync("localStorage.setItem", "sw_dark", isDark ? "1" : "0");
         }
         catch { /* bỏ qua */ }

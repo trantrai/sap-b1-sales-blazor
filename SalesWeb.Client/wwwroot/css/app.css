@@ -475,3 +475,15 @@ fluent-data-grid .column-header { background: #faf9f8; }
   .fm-card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
   body { background: #fff !important; }
 }
+
+/* ===== C9: Dark mode cho CSS custom ===== */
+body[data-theme="dark"] .fm-app-root { background: #1b1a19; color: #f5f5f5; }
+body[data-theme="dark"] .fm-page { background: #1b1a19; }
+body[data-theme="dark"] .fm-topbar { background: #252423; border-color: #3b3a39; }
+body[data-theme="dark"] .fm-topbar__title { color: #f5f5f5; }
+body[data-theme="dark"] .fm-card { background: #252423; border-color: #3b3a39; }
+body[data-theme="dark"] .fm-kpi { background: #252423; border-color: #3b3a39; }
+body[data-theme="dark"] .fm-kpi .label { color: #d2d0ce; }
+body[data-theme="dark"] .fm-table-wrap { background: #252423; }
+body[data-theme="dark"] .fm-global-results { background: #252423; border-color: #3b3a39; }
+body[data-theme="dark"] .fm-global-item span { color: #d2d0ce; }
