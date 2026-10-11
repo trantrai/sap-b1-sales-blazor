@@ -1,0 +1,3 @@
+# Dependencies của app sap_b1_sales (ngoài frappe đã do bench quản lý)
+requests>=2.31
+openpyxl>=3.1

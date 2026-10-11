@@ -1,0 +1,2 @@
+include README.md license.txt requirements.txt
+recursive-include sap_b1_sales *.py *.js *.css *.json *.txt *.md *.html

@@ -1,0 +1,7 @@
+/* SAP B1 Sales — custom CSS (nạp qua hooks.py app_include_css) */
+:root {
+    --b1-navy: #12305a;
+    --b1-blue: #1d4e89;
+    --b1-yellow: #ffc928;
+    --b1-orange: #d9431a;
+}

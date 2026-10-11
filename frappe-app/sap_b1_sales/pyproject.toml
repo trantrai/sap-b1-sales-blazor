@@ -1,0 +1,19 @@
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "sap_b1_sales"
+version = "0.1.0"
+description = "Quản lý Sales Order tích hợp SAP Business One Service Layer trên Frappe Framework"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Trần Văn Trải" }]
+dependencies = [
+    "requests>=2.31",
+    "openpyxl>=3.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/trantrai/sap-b1-sales-blazor"
