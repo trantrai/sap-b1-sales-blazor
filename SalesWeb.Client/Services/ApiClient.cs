@@ -285,13 +285,14 @@ public class ApiClient(HttpClient http, TokenStore tokens)
         => SendAsync<DashboardStats>(HttpMethod.Get, "api/orders/stats");
 
     /// <summary>Tải file Excel danh sách đơn (A2) — trả về bytes.</summary>
-    public async Task<byte[]?> ExportOrdersExcelAsync(string? status, string? cardCode)
+    public async Task<byte[]?> ExportOrdersExcelAsync(string? status, string? cardCode, int? docNum = null)
     {
         var token = await tokens.GetTokenAsync();
         var req = new HttpRequestMessage(HttpMethod.Get,
             Q("api/orders/export", new Dictionary<string, string?>
             {
                 ["status"] = status, ["card_code"] = cardCode,
+                ["doc_num"] = docNum?.ToString(),
             }));
         if (!string.IsNullOrEmpty(token))
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

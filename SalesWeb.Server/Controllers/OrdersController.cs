@@ -113,13 +113,14 @@ public sealed class OrdersController : ApiBaseController
     public async Task<IActionResult> ExportExcel(
         [FromQuery] string status = "",
         [FromQuery] string? card_code = null,
+        [FromQuery] int? doc_num = null,
         [FromQuery] DateOnly? date_from = null,
         [FromQuery] DateOnly? date_to = null)
     {
         var user = CurrentUser;
         // P0-1: sales bắt buộc có mã NVKD mới được xuất (fail-closed)
         int? spc = user.Role == "sales" ? RequireSalesCode() : null;
-        var paged = await Svc(user.Username).ListAsync(status, card_code, null,
+        var paged = await Svc(user.Username).ListAsync(status, card_code, doc_num,
             spc, date_from, date_to, 1000, 0);
         using var wb = new ClosedXML.Excel.XLWorkbook();
         var ws = wb.Worksheets.Add("DonHang");

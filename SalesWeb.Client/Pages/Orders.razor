@@ -108,16 +108,18 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Đọc filter từ query string để deep-link được: ?status=open&card=C20000&page=2
+        // Đọc filter từ query string để deep-link được: ?status=open&card=C20000&doc=5001&page=2
         var q = ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
         var st = q.TryGetValue("status", out var s) ? s : "open";
         if (!statusOptions.ContainsKey(st)) st = "open";
         var card = q.TryGetValue("card", out var c) ? c : "";
+        var doc = q.TryGetValue("doc", out var d) ? d : "";
         var page = q.TryGetValue("page", out var p) && int.TryParse(p, out var pg) && pg >= 1 ? pg : 1;
 
-        var changed = !_urlSynced || st != status || card != cardCode || (page - 1) * top != skip;
+        var changed = !_urlSynced || st != status || card != cardCode || doc != docNumStr || (page - 1) * top != skip;
         status = st;
         cardCode = card;
+        docNumStr = doc;
         skip = (page - 1) * top;
         _urlSynced = true;
         if (changed) await Load();
@@ -144,6 +146,7 @@
         var parts = new List<string>();
         if (status != "open") parts.Add($"status={Uri.EscapeDataString(status ?? "open")}");
         if (!string.IsNullOrWhiteSpace(cardCode)) parts.Add($"card={Uri.EscapeDataString(cardCode.Trim())}");
+        if (docNum.HasValue) parts.Add($"doc={docNum.Value}");
         if (currentPage > 1) parts.Add($"page={currentPage}");
         Nav.NavigateTo(parts.Count == 0 ? "/" : "/?" + string.Join("&", parts));
     }
@@ -174,7 +177,7 @@
         exporting = true;
         try
         {
-            var bytes = await Api.ExportOrdersExcelAsync(status, cardCode);
+            var bytes = await Api.ExportOrdersExcelAsync(status, cardCode, docNum);
             if (bytes is null || bytes.Length == 0) return;
             var b64 = Convert.ToBase64String(bytes);
             var name = $"donhang-{DateTime.Now:yyyyMMdd-HHmmss}.xlsx";
