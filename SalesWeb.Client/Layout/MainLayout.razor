@@ -72,10 +72,10 @@
             </div>
             <div class="fm-topbar__user">
                 @* C9: Tìm kiếm toàn cục (Ctrl+K) *@
-                <div style="position:relative">
+                <div style="position:relative" class="fm-search-wrap">
                     <FluentTextInput @bind-Value="globalQ" Placeholder="Tìm đơn/KH… (Ctrl+K)"
                                      @onkeydown="OnGlobalSearchKey" @ref="globalSearchRef"
-                                     Style="width:220px" aria-label="Tìm kiếm toàn cục" />
+                                     class="fm-search-input" aria-label="Tìm kiếm toàn cục" />
                     @if (globalResults.Count > 0)
                     {
                         <div class="fm-global-results" @onclick:stopPropagation="true">
