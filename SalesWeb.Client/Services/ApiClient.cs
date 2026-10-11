@@ -263,6 +263,9 @@ public class ApiClient(HttpClient http, TokenStore tokens)
     public Task<SyncStartOut?> TriggerSyncAsync(List<string> entities)
         => SendAsync<SyncStartOut>(HttpMethod.Post, "api/sync", new { entities });
 
+    public Task<SyncJobOut?> GetSyncJobAsync(string jobId)
+        => SendAsync<SyncJobOut>(HttpMethod.Get, $"api/sync/job/{jobId}");
+
     // ---------------- Audit ----------------
     public Task<PagedAudit?> ListAuditAsync(string? operation, string? status, string? q, int limit = 100)
         => SendAsync<PagedAudit>(HttpMethod.Get, Q("api/audit", new Dictionary<string, string?>

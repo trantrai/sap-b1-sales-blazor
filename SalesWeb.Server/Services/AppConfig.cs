@@ -81,6 +81,29 @@ public sealed class AppConfig
             AdminPassword.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
                 "ADMIN_PASSWORD must be changed from the default when B1_MOCK=false.");
+        // M3: validate B1 live settings — fail-fast toàn bộ
+        if (B1Password == "changeme" ||
+            B1Password.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                "B1_PASSWORD must be set to the real Service Layer password when B1_MOCK=false.");
+        if (B1ServiceLayerUrl.Contains("your-b1-server", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                "B1_SERVICE_LAYER_URL must be set to the real server when B1_MOCK=false.");
+        if (!Uri.TryCreate(B1ServiceLayerUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != "https" && uri.Scheme != "http"))
+            throw new InvalidOperationException(
+                "B1_SERVICE_LAYER_URL must be a valid http(s) URL when B1_MOCK=false.");
+        if (string.IsNullOrWhiteSpace(B1CompanyDb))
+            throw new InvalidOperationException(
+                "B1_COMPANY_DB is required when B1_MOCK=false.");
+        if (string.IsNullOrWhiteSpace(B1Username))
+            throw new InvalidOperationException(
+                "B1_USERNAME is required when B1_MOCK=false.");
+        // SSL verification chỉ được tắt ở Development hoặc có cờ xác nhận rõ ràng
+        if (!B1VerifySsl && Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != "Development" &&
+            Environment.GetEnvironmentVariable("B1_ALLOW_INSECURE_SSL") != "1")
+            throw new InvalidOperationException(
+                "B1_VERIFY_SSL=false requires ASPNETCORE_ENVIRONMENT=Development or B1_ALLOW_INSECURE_SSL=1.");
     }
 }
 

@@ -47,10 +47,10 @@ public sealed class SyncService
         }
         finally { Gate.Release(); }
 
-        var logId = MdStore.LogStart(entity);
+        var db = string.IsNullOrWhiteSpace(companyDb) ? "" : companyDb.Trim();
+        var logId = MdStore.LogStart(db, entity);
         int total = 0;
         string error = "";
-        var db = string.IsNullOrWhiteSpace(companyDb) ? "" : companyDb.Trim();
         try
         {
             if (entity == "customers")

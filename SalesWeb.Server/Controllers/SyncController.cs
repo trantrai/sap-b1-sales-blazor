@@ -30,7 +30,9 @@ public sealed class SyncController : ApiBaseController
     [RequireRole("viewer")]
     public ActionResult<SyncStatusOut> Status()
     {
-        var rows = MdStore.SyncStatus();
+        // M1: status theo CompanyDB của user hiện tại
+        var companyDb = CurrentUser.CompanyDb ?? "";
+        var rows = MdStore.SyncStatus(companyDb);
         var tables = rows.Select(r => new SyncTableOut
         {
             Table = r["entity"]?.ToString() ?? "",
@@ -38,7 +40,7 @@ public sealed class SyncController : ApiBaseController
             LastSync = r["last_finished_at"]?.ToString(),
             LastRecords = Convert.ToInt32(r["last_records"]),
         }).ToList();
-        var running = rows.Any(r => SyncService.IsRunning(r["entity"]?.ToString() ?? ""));
+        var running = rows.Any(r => SyncService.IsRunning(r["entity"]?.ToString() ?? "", companyDb));
         var latest = rows
             .OrderByDescending(r => r["last_started_at"]?.ToString())
             .FirstOrDefault();
@@ -104,13 +106,14 @@ public sealed class SyncController : ApiBaseController
         });
     }
 
-    /// <summary>Trạng thái job đồng bộ (fix #9).</summary>
+    /// <summary>Trạng thái job đồng bộ (fix #9, M2: chỉ xem job của đúng CompanyDB).</summary>
     [HttpGet("job/{jobId}")]
     [RequireRole("viewer")]
     public ActionResult<SyncJobOut> JobStatus(string jobId)
     {
         var job = SyncService.GetJob(jobId);
-        if (job is null) return NotFound();
+        // M2: 404 thay vì 403 để không lộ sự tồn tại của job thuộc DB khác
+        if (job is null || job.CompanyDb != (CurrentUser.CompanyDb ?? "")) return NotFound();
         return Ok(new SyncJobOut
         {
             JobId = job.JobId,

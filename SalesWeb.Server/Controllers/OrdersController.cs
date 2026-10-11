@@ -28,13 +28,28 @@ public sealed class OrdersController : ApiBaseController
     /// <summary>
     /// NVKD chỉ được thao tác đơn của mình (theo SalesPersonCode).
     /// Manager/admin được thao tác mọi đơn. Ném 403 nếu vi phạm.
+    /// P0-1: sales CHƯA có SalesPersonCode → 403 fail-closed (không bypass).
     /// </summary>
     private void EnsureOwnership(OrderOut order)
     {
         var user = CurrentUser;
-        if (user.Role == "sales" && user.SalesPersonCode.HasValue &&
-            order.SalesPersonCode != user.SalesPersonCode)
+        if (user.Role != "sales") return;
+        if (!user.SalesPersonCode.HasValue)
+            throw new ApiException(403, "Tài khoản chưa được gán nhân viên kinh doanh. Liên hệ quản trị viên.");
+        if (order.SalesPersonCode != user.SalesPersonCode)
             throw new ApiException(403, "Bạn chỉ được thao tác đơn hàng của mình.");
+    }
+
+    /// <summary>
+    /// Lấy SalesPersonCode bắt buộc cho sales — ném 403 nếu chưa được gán.
+    /// Dùng cho list/export để fail-closed.
+    /// </summary>
+    private int RequireSalesCode()
+    {
+        var user = CurrentUser;
+        if (user.Role == "sales" && !user.SalesPersonCode.HasValue)
+            throw new ApiException(403, "Tài khoản chưa được gán nhân viên kinh doanh. Liên hệ quản trị viên.");
+        return user.SalesPersonCode ?? 0;
     }
 
     /// <summary>Validation nghiệp vụ cơ bản cho tạo đơn (fix #6).</summary>
@@ -98,10 +113,10 @@ public sealed class OrdersController : ApiBaseController
         [FromQuery] DateOnly? date_to = null)
     {
         var user = CurrentUser;
-        if (user.Role == "sales") { /* sales chỉ xuất đơn của mình — lọc theo sales_person_code */ }
+        // P0-1: sales bắt buộc có mã NVKD mới được xuất (fail-closed)
+        int? spc = user.Role == "sales" ? RequireSalesCode() : null;
         var paged = await Svc(user.Username).ListAsync(status, card_code,
-            user.Role == "sales" ? user.SalesPersonCode : null,
-            date_from, date_to, 1000, 0);
+            spc, date_from, date_to, 1000, 0);
         using var wb = new ClosedXML.Excel.XLWorkbook();
         var ws = wb.Worksheets.Add("DonHang");
         var headers = new[] { "Số đơn", "Ngày", "Mã KH", "Tên KH", "Tổng tiền", "Trạng thái", "Ghi chú" };
@@ -151,9 +166,13 @@ public sealed class OrdersController : ApiBaseController
         [FromQuery] int skip = 0)
     {
         var user = CurrentUser;
-        // NVKD thường chỉ xem đơn của mình
-        if (user.Role == "sales" && user.SalesPersonCode.HasValue && sales_person_code is null)
-            sales_person_code = user.SalesPersonCode;
+        // P0-1: NVKD bắt buộc có SalesPersonCode, luôn lọc theo mã của mình (fail-closed).
+        // Không cho phép sales truyền sales_person_code khác qua query.
+        if (user.Role == "sales")
+        {
+            var code = RequireSalesCode();
+            sales_person_code = code;
+        }
         top = Math.Min(top, 200);
         return Ok(await Svc(user.Username).ListAsync(
             status, card_code, sales_person_code, date_from, date_to, top, skip));
@@ -177,9 +196,10 @@ public sealed class OrdersController : ApiBaseController
     {
         var user = CurrentUser;
         ValidateOrderCreate(body);
-        // Mặc định gán NVKD tạo đơn
-        if (body.SalesPersonCode is null && user.SalesPersonCode.HasValue)
-            body.SalesPersonCode = user.SalesPersonCode;
+        // P0-2: sales luôn tạo đơn dưới mã của mình — ghi đè mọi giá trị client gửi lên.
+        // Chỉ manager/admin mới được chỉ định salesperson khác.
+        if (user.Role == "sales")
+            body.SalesPersonCode = RequireSalesCode();
         ValidateDiscounts(body.DiscountPercent, body.Lines.Select(l => l.DiscountPercent));
         var (order, created) = await Svc(user.Username).CreateAsync(body);
         AuditLog.LogAction(user.Username, "order.create", "Orders", order.DocEntry.ToString(),

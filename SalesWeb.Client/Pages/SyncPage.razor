@@ -132,19 +132,34 @@
         syncing = true;
         try
         {
-            await Api.TriggerSyncAsync(entities);
+            // P1 UI: lưu JobId và poll job scoped thay vì status global
+            var start = await Api.TriggerSyncAsync(entities);
+            var jobId = start?.JobId;
             await Load();
             pollTimer?.Dispose();
             pollTimer = new System.Threading.Timer(async _ =>
             {
                 await InvokeAsync(async () =>
                 {
-                    await Load();
-                    if (!rows.Any(r => r.Running))
+                    bool done = false;
+                    if (!string.IsNullOrEmpty(jobId))
+                    {
+                        var job = await Api.GetSyncJobAsync(jobId);
+                        done = job is null || job.Status != "running";
+                        if (done && job?.Status == "error")
+                            error = job.Error;
+                    }
+                    else
+                    {
+                        await Load();
+                        done = !rows.Any(r => r.Running);
+                    }
+                    if (done)
                     {
                         pollTimer?.Dispose();
                         pollTimer = null;
                         syncing = false;
+                        await Load();
                         // Master data đã đổi → xoá cache client để lần tìm sau tải lại
                         MdCache.Invalidate();
                         StateHasChanged();

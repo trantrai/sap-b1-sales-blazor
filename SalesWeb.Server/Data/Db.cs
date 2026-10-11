@@ -59,6 +59,7 @@ public static class Db
 
             CREATE TABLE IF NOT EXISTS md_sync_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_db TEXT NOT NULL DEFAULT '',
                 entity TEXT NOT NULL,
                 status TEXT NOT NULL,
                 started_at TEXT DEFAULT (datetime('now')),
@@ -66,7 +67,7 @@ public static class Db
                 records INTEGER NOT NULL DEFAULT 0,
                 error TEXT DEFAULT ''
             );
-            CREATE INDEX IF NOT EXISTS idx_md_sync_log_entity ON md_sync_log(entity, id);
+            CREATE INDEX IF NOT EXISTS idx_md_sync_log_entity ON md_sync_log(company_db, entity, id);
             """;
         cmd.ExecuteNonQuery();
 
@@ -146,6 +147,16 @@ public static class Db
             CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(username);
             """;
         cmd2.ExecuteNonQuery();
+
+        // Migration M1: md_sync_log cũ chưa có company_db → thêm cột
+        using var mig = conn.CreateCommand();
+        mig.CommandText = "SELECT COUNT(*) FROM pragma_table_info('md_sync_log') WHERE name='company_db'";
+        if (Convert.ToInt64(mig.ExecuteScalar() ?? 0) == 0)
+        {
+            using var add = conn.CreateCommand();
+            add.CommandText = "ALTER TABLE md_sync_log ADD COLUMN company_db TEXT NOT NULL DEFAULT ''";
+            add.ExecuteNonQuery();
+        }
 
         // Seed tài khoản admin lần đầu
         using var check = conn.CreateCommand();

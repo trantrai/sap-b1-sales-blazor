@@ -175,11 +175,12 @@ public static class MdStore
         return out_;
     }
 
-    public static long LogStart(string entity)
+    public static long LogStart(string companyDb, string entity)
     {
         using var conn = Db.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "INSERT INTO md_sync_log (entity, status) VALUES ($e, 'running'); SELECT last_insert_rowid();";
+        cmd.CommandText = "INSERT INTO md_sync_log (company_db, entity, status) VALUES ($db, $e, 'running'); SELECT last_insert_rowid();";
+        cmd.Parameters.AddWithValue("$db", companyDb ?? "");
         cmd.Parameters.AddWithValue("$e", entity);
         return Convert.ToInt64(cmd.ExecuteScalar());
     }
@@ -196,17 +197,19 @@ public static class MdStore
         cmd.ExecuteNonQuery();
     }
 
-    public static List<Dictionary<string, object?>> SyncStatus()
+    public static List<Dictionary<string, object?>> SyncStatus(string companyDb)
     {
         using var conn = Db.Open();
         var out_ = new List<Dictionary<string, object?>>();
         foreach (var (entity, table) in new[] { ("customers", "md_customers"), ("items", "md_items"), ("tax_codes", "md_tax_codes") })
         {
             using var c1 = conn.CreateCommand();
-            c1.CommandText = $"SELECT COUNT(*) FROM {table}";
+            c1.CommandText = $"SELECT COUNT(*) FROM {table} WHERE company_db = $db";
+            c1.Parameters.AddWithValue("$db", companyDb ?? "");
             var total = Convert.ToInt32(c1.ExecuteScalar());
             using var c2 = conn.CreateCommand();
-            c2.CommandText = "SELECT status, started_at, finished_at, records, error FROM md_sync_log WHERE entity=$e ORDER BY id DESC LIMIT 1";
+            c2.CommandText = "SELECT status, started_at, finished_at, records, error FROM md_sync_log WHERE company_db=$db AND entity=$e ORDER BY id DESC LIMIT 1";
+            c2.Parameters.AddWithValue("$db", companyDb ?? "");
             c2.Parameters.AddWithValue("$e", entity);
             using var r = c2.ExecuteReader();
             var row = new Dictionary<string, object?>

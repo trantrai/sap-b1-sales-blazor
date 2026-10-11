@@ -29,23 +29,23 @@ else
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px">
         <div class="fm-card" style="margin:0;padding:16px;text-align:center">
             <div style="font-size:12px;color:var(--fm-text-2)">Tổng đơn hàng</div>
-            <div style="font-size:28px;font-weight:700;color:#1E3A5F">@stats.TotalOrders</div>
+            <div class="fm-kpi__value fm-kpi__value--primary">@stats.TotalOrders</div>
         </div>
         <div class="fm-card" style="margin:0;padding:16px;text-align:center">
             <div style="font-size:12px;color:var(--fm-text-2)">Doanh số</div>
-            <div style="font-size:28px;font-weight:700;color:#1E3A5F">@FmtMoney(stats.TotalRevenue)</div>
+            <div class="fm-kpi__value fm-kpi__value--primary">@FmtMoney(stats.TotalRevenue)</div>
         </div>
         <div class="fm-card" style="margin:0;padding:16px;text-align:center">
             <div style="font-size:12px;color:var(--fm-text-2)">Đang mở</div>
-            <div style="font-size:28px;font-weight:700;color:#F2B705">@stats.OpenOrders</div>
+            <div class="fm-kpi__value fm-kpi__value--warn">@stats.OpenOrders</div>
         </div>
         <div class="fm-card" style="margin:0;padding:16px;text-align:center">
             <div style="font-size:12px;color:var(--fm-text-2)">Đã đóng</div>
-            <div style="font-size:28px;font-weight:700;color:#2e7d32">@stats.ClosedOrders</div>
+            <div class="fm-kpi__value fm-kpi__value--ok">@stats.ClosedOrders</div>
         </div>
         <div class="fm-card" style="margin:0;padding:16px;text-align:center">
             <div style="font-size:12px;color:var(--fm-text-2)">Đã huỷ</div>
-            <div style="font-size:28px;font-weight:700;color:#E0522F">@stats.CancelledOrders</div>
+            <div class="fm-kpi__value fm-kpi__value--danger">@stats.CancelledOrders</div>
         </div>
     </div>
 
