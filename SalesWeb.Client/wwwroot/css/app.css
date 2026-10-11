@@ -137,6 +137,7 @@ fluent-data-grid .column-header { background: #faf9f8; }
   height: var(--fm-topbar-h); background: var(--fm-surface);
   border-bottom: 2px solid var(--fm-gold);
   padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 40;
 }
 .fm-topbar__title { font-size: var(--fm-fs-lg); font-weight: 600; color: var(--fm-text); }
 .fm-topbar__user { display: flex; align-items: center; gap: 8px; font-size: var(--fm-fs-sm); color: var(--fm-text-2); }
@@ -634,6 +635,25 @@ body {
 }
 html {
   overflow-x: clip;
+}
+
+/* ===== Card dòng hàng cho mobile (ẩn bảng) ===== */
+.fm-lines-cards { display: none; }
+.fm-line-card {
+  border: 1px solid var(--fm-line); border-radius: 10px;
+  padding: 12px; margin-bottom: 10px; background: var(--fm-surface);
+}
+.fm-line-card.is-draft { background: var(--fm-yellow-faint); }
+.fm-line-card__head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--fm-line);
+}
+.fm-line-card__num { font-weight: 600; font-size: 14px; }
+.fm-line-card__total { margin-left: auto; font-weight: 700; color: var(--fm-text); }
+@media (max-width: 600px) {
+  .fm-lines-table { display: none !important; }
+  .fm-lines-cards { display: block; }
 }
 
 /* ===== Input số native cho dòng hàng (fix FluentNumberInput không nhập được trên mobile) ===== */

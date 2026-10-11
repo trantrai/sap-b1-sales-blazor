@@ -66,7 +66,7 @@
     <div class="fm-card" style="margin-bottom:14px">
         <h2 class="fm-card__title">2. Dòng hàng</h2>
         <p class="fm-card__desc">Thêm từng mặt hàng vào đơn</p>
-        <div class="fm-table-wrap" style="box-shadow:none; overflow-x:auto">
+        <div class="fm-table-wrap fm-lines-table" style="box-shadow:none; overflow-x:auto">
             <table class="fm-table">
                 <thead>
                     <tr>
@@ -134,6 +134,66 @@
                     }
                 </tbody>
             </table>
+        </div>
+        @* Layout card cho mobile — hiện thay cho bảng *@
+        <div class="fm-lines-cards">
+            @for (int idx = 0; idx < lines.Count; idx++)
+            {
+                var ln = lines[idx];
+                var i = idx;
+                <div @key="ln" class="fm-line-card @(string.IsNullOrEmpty(ln.ItemCode) ? "is-draft" : "")">
+                    <div class="fm-line-card__head">
+                        <span class="fm-line-card__num">Dòng @(i + 1)</span>
+                        <span class="fm-line-card__total">@FmtMoney(LineTotal(ln))</span>
+                        <button type="button" class="fm-row-del" title="Xoá dòng"
+                                aria-label="@($"Xoá dòng {i + 1}")"
+                                disabled="@(lines.Count == 1)"
+                                @onclick="() => lines.RemoveAt(i)">✕</button>
+                    </div>
+                    <div class="fm-field">
+                        <label class="fm-label">Hàng hoá <span style="color:var(--fm-red)">*</span></label>
+                        <ItemSearch Selected="@ln.PickedItem"
+                                    SelectedChanged="@(it => OnItemPicked(i, it))" />
+                    </div>
+                    <div class="fm-grid-2">
+                        <div class="fm-field">
+                            <label class="fm-label">Số lượng *</label>
+                            <input type="number" class="fm-input-num" @bind="ln.Quantity" @bind:event="oninput"
+                                   min="0" step="any" aria-label="@($"Số lượng dòng {i + 1}")" />
+                        </div>
+                        <div class="fm-field">
+                            <label class="fm-label">Đơn giá</label>
+                            <input type="number" class="fm-input-num" @bind="ln.Price" @bind:event="oninput"
+                                   min="0" step="any" aria-label="@($"Đơn giá dòng {i + 1}")" />
+                        </div>
+                        <div class="fm-field">
+                            <label class="fm-label">Chiết khấu %</label>
+                            <input type="number" class="fm-input-num" @bind="ln.DiscountPercent" @bind:event="oninput"
+                                   min="0" max="100" step="any" aria-label="@($"Chiết khấu dòng {i + 1}")" />
+                        </div>
+                        <div class="fm-field">
+                            <label class="fm-label">Kho</label>
+                            <FluentSelect TValue="string" TOption="WarehouseOut"
+                                          Items="@warehouses"
+                                          OptionText="@(w => w.WarehouseCode)"
+                                          OptionValue="@(w => w.WarehouseCode)"
+                                          @bind-Value="ln.Warehouse" Placeholder="—" Style="width:100%" />
+                        </div>
+                        <div class="fm-field">
+                            <label class="fm-label">Ngày giao</label>
+                            <FluentDatePicker TValue="DateTime?" @bind-Value="ln.ShipDate" Style="width:100%" />
+                        </div>
+                        <div class="fm-field">
+                            <label class="fm-label">Thuế suất</label>
+                            <FluentSelect TValue="string" TOption="TaxCodeOut"
+                                          Items="@taxCodes"
+                                          OptionText="@(t => $"{t.Code} · {t.Rate}%")"
+                                          OptionValue="@(t => t.Code)"
+                                          @bind-Value="ln.TaxCode" Placeholder="Mặc định" Style="width:100%" />
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
         <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="AddLine" Style="margin-top:10px"
                       IconStart="@(new Icons.Regular.Size20.Add())">
