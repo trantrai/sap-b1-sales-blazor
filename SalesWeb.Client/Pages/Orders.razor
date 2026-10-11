@@ -18,7 +18,7 @@
         <label class="fm-label-inline" for="filter-status">Trạng thái</label>
         <FluentSelect Id="filter-status" TValue="string" TOption="string" Items="@statusOptions.Keys"
                       OptionText="@(v => statusOptions[v])" OptionValue="@(v => v)"
-                      @bind-SelectedOption="status" Style="min-width:150px" aria-label="Lọc theo trạng thái đơn" />
+                      @bind-Value="status" Style="min-width:150px" aria-label="Lọc theo trạng thái đơn" />
     </div>
     <FluentTextInput @bind-Value="cardCode" @bind-Value:event="oninput" Placeholder="Mã KH (VD: C20000)"
                      Style="min-width:150px" @onkeydown="OnFilterKey" />
