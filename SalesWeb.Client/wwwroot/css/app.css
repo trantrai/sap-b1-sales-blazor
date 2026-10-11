@@ -1,54 +1,58 @@
 /* ============================================================
-   BRAND THEME — theo logo Farmers Market (2026-10-11)
-   Navy #1E3A5F (chủ đạo) · Gold #F2B705 (nhấn) · Coral #E0522F (cảnh báo)
+   BRAND THEME — theo file sale-order-styles.css (2026-10-11)
+   Sidebar navy đậm #12305a · Nút chính blue #1d4e89
+   Nav active nền vàng #ffc928 · Nền #faf8f1
    Phong cách Fluent hiện đại, tối ưu mobile responsive
    ============================================================ */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --accent-fill-rest: #1E3A5F;
-  --accent-fill-hover: #2a4d78;
-  --accent-fill-active: #16294a;
-  --accent-fill-focus: #1E3A5F;
-  --accent-foreground-rest: #1E3A5F;
-  --accent-foreground-hover: #2a4d78;
-  --accent-foreground-active: #16294a;
-  --accent-foreground-focus: #1E3A5F;
-  --error: #E0522F;
+  --accent-fill-rest: #1d4e89;
+  --accent-fill-hover: #12386b;
+  --accent-fill-active: #12305a;
+  --accent-fill-focus: #1d4e89;
+  --accent-foreground-rest: #1d4e89;
+  --accent-foreground-hover: #12386b;
+  --accent-foreground-active: #12305a;
+  --accent-foreground-focus: #1d4e89;
+  --error: #d9431a;
   --body-font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
-  /* Design tokens */
-  --ds-bg: #f6f7fb;
+  /* Design tokens từ sale-order-styles.css */
+  --ds-bg: #faf8f1;
   --ds-surface: #ffffff;
   --ds-border: #eceef5;
   --ds-border-input: #dfe3ec;
   --ds-text: #1b2430;
   --ds-text-2: #475569;
   --ds-text-3: #64748b;
-  --ds-primary: #1E3A5F;
-  --ds-primary-dark: #16294a;
-  --ds-primary-light: #e8edf4;
-  --ds-gold: #F2B705;
-  --ds-gold-soft: #fdf3d7;
-  --ds-coral: #E0522F;
+  --ds-navy: #12305a;
+  --ds-navy-900: #12305a;
+  --ds-blue: #1d4e89;
+  --ds-blue-700: #12386b;
+  --ds-blue-100: #dbe7f7;
+  --ds-yellow: #ffc928;
+  --ds-orange: #d9431a;
+  --ds-field-border: #b7cae6;
+  --ds-field-bg: #f3f8ff;
   --ds-radius: 16px;
   --ds-radius-sm: 10px;
   --ds-radius-xs: 12px;
   --ds-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.04);
   --ds-success-bg: #dcfce7; --ds-success-tx: #166534;
   --ds-error-bg: #fee2e2; --ds-error-tx: #b91c1c;
-  --ds-info-bg: #e0e7ff; --ds-info-tx: #3730a3;
+  --ds-info-bg: #dbe7f7; --ds-info-tx: #12386b;
 }
 
 html, body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   margin: 0;
-  background: #f6f7fb;
+  background: #faf8f1;
   color: #1b2430;
   -webkit-font-smoothing: antialiased;
 }
-body a { color: #1E3A5F; }
-body ::selection { background: #fdf3d7; }
+body a { color: #1d4e89; }
+body ::selection { background: #dbe7f7; }
 
 /* Fluent dialog/content font + spacing tweaks */
 fluent-dialog::part(control) { border-top: 4px solid #F2B705; }
@@ -71,24 +75,23 @@ fluent-data-grid .column-header { background: #faf9f8; }
    ============================================================ */
 
 :root {
-  /* ---------- Brand palette — theo logo Farmers Market ----------
-     Navy #1E3A5F: nút chính, link, focus, menu active
-     Gold #F2B705: điểm nhấn (viền topbar, login, badge)
-     Coral #E0522F: nút nguy hiểm, lỗi                         */
-  --fm-yellow:        #1e3a5f;   /* Accent chính (navy) — CTA, highlight */
-  --fm-yellow-hover:  #2a4d78;
-  --fm-yellow-soft:   #e8edf4;   /* chip Open, hover row */
-  --fm-yellow-faint:  #f6f7fb;
-  --fm-gold:          #f2b705;   /* Điểm nhấn vàng gold */
+  /* ---------- Theo sale-order-styles.css ----------
+     Sidebar navy đậm #12305a · Nút chính blue #1d4e89
+     Nav active nền vàng #ffc928 · Badge cam #d9431a */
+  --fm-yellow:        #1d4e89;   /* Accent chính (blue) — CTA, highlight */
+  --fm-yellow-hover:  #12386b;
+  --fm-yellow-soft:   #dbe7f7;   /* chip Open, hover row */
+  --fm-yellow-faint:  #faf8f1;
+  --fm-gold:          #ffc928;   /* Vàng nhấn */
   --fm-gold-soft:     #fdf3d7;
   --fm-navy:          #1b2430;   /* Chữ chính */
   --fm-navy-deep:     #0f172a;   /* Tiêu đề lớn */
-  --fm-navy-soft:     rgba(30, 58, 95, .08);
-  --fm-red:           #e0522f;   /* Lỗi, nguy hiểm (coral) */
-  --fm-red-soft:      #fdeee6;
+  --fm-navy-soft:     rgba(29, 78, 137, .08);
+  --fm-red:           #d9431a;   /* Lỗi, nguy hiểm (cam) */
+  --fm-red-soft:      #fee2e2;
   --fm-green:         #166534;   /* Thành công */
   --fm-green-soft:    #dcfce7;
-  --fm-cream:         #f6f7fb;   /* Nền trang chính */
+  --fm-cream:         #faf8f1;   /* Nền trang chính */
   --fm-surface:       #ffffff;   /* Card, input, bảng */
   --fm-line:          #eceef5;   /* Đường kẻ, border */
   --fm-text:          #1b2430;
@@ -129,10 +132,16 @@ fluent-data-grid .column-header { background: #faf9f8; }
 
 .fm-sidebar {
   width: var(--fm-sidebar-w); flex-shrink: 0;
-  background: var(--fm-surface);
-  border-right: 1px solid var(--fm-line);
-  padding: 12px 8px; display: flex; flex-direction: column;
+  background: #12305a; color: #d6e2f5;
+  border-right: none;
+  padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;
 }
+.fm-sidebar .fm-nav-item { color: #d6e2f5; }
+.fm-sidebar .fm-nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.fm-sidebar .fm-nav-item--active {
+  background: #ffc928 !important; color: #12305a !important; font-weight: 700;
+}
+.fm-sidebar .fm-user-panel { color: #d6e2f5; border-top: 1px solid rgba(255,255,255,.12); }
 .fm-logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; }
 .fm-logo__badge {
   width: 36px; height: 36px; border-radius: var(--fm-r-md);
@@ -813,3 +822,53 @@ html {
     z-index: 100; max-height: 50vh; overflow-y: auto;
   }
 }
+
+/* ============================================================
+   SIDEBAR NAVY ĐẬM — theo sale-order-styles.css
+   ============================================================ */
+.fm-sidebar fluent-nav-link::part(control),
+.fm-sidebar .fluent-nav-link::part(control) {
+  color: #d6e2f5 !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+}
+.fm-sidebar fluent-nav-link::part(control):hover {
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+}
+.fm-sidebar fluent-nav-link[aria-current="page"]::part(control),
+.fm-sidebar .active::part(control) {
+  background: #ffc928 !important;
+  color: #12305a !important;
+  font-weight: 700 !important;
+}
+.fm-sidebar .fm-logo__name { color: #fff !important; }
+.fm-sidebar .fm-logo__name small { color: #d6e2f5 !important; }
+.fm-sidebar .fm-logo__badge {
+  background: #ffc928 !important; color: #12305a !important;
+}
+/* User panel trong sidebar navy */
+.fm-sidebar > div:last-child {
+  border-top-color: rgba(255,255,255,.12) !important;
+}
+.fm-sidebar > div:last-child div:first-child { color: #d6e2f5 !important; }
+
+/* Input có gạch chân vàng theo design */
+.fm-input, .fm-select, input.fm-input {
+  border: 1.5px solid #b7cae6 !important;
+  background: #f3f8ff !important;
+  box-shadow: inset 0 -3px 0 #ffc928 !important;
+  border-radius: 10px !important;
+}
+.fm-label { color: #12305a !important; font-weight: 600 !important; }
+
+/* Nút chính blue */
+.fm-btn--primary {
+  background: #1d4e89 !important; border-color: #1d4e89 !important; color: #fff !important;
+}
+.fm-btn--primary:hover { background: #12386b !important; border-color: #12386b !important; }
+/* Nút nguy hiểm cam */
+.fm-btn--danger {
+  background: #fff !important; color: #d9431a !important; border-color: #d9431a !important;
+}
+.fm-btn--danger:hover { background: #d9431a !important; color: #fff !important; }
