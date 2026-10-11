@@ -445,3 +445,33 @@ fluent-data-grid .column-header { background: #faf9f8; }
   .fm-submit-bar .fm-totals { width: 100%; margin-left: 0; }
   .fm-table-wrap { overflow-x: auto; }
 }
+
+/* ===== C9: Tìm kiếm toàn cục ===== */
+.fm-global-results {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 100;
+  min-width: 300px; max-width: 380px; max-height: 360px; overflow-y: auto;
+  background: var(--neutral-layer-1, #fff);
+  border: 1px solid var(--neutral-stroke-1, #d1d1d1);
+  border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.14);
+  padding: 4px;
+}
+.fm-global-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; padding: 8px 12px; border: 0; border-radius: 6px;
+  background: transparent; cursor: pointer; text-align: left;
+}
+.fm-global-item:hover { background: var(--neutral-layer-2, #f5f5f5); }
+.fm-global-item b { font-size: 13.5px; }
+.fm-global-item span { font-size: 12px; color: var(--fm-text-2, #666); }
+
+/* ===== C9: Bản in đơn hàng ===== */
+@media print {
+  .fm-sidebar, .fm-topbar, .fm-backdrop, .fm-nav-toggle,
+  .fm-submit-bar, .fm-filterbar, button, .no-print {
+    display: none !important;
+  }
+  .fm-main { margin: 0 !important; }
+  .fm-page { padding: 0 !important; }
+  .fm-card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+  body { background: #fff !important; }
+}

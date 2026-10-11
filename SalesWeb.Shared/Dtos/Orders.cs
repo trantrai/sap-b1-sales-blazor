@@ -123,3 +123,39 @@ public class PagedOrders
     public int Total { get; set; }
     public List<OrderOut> Items { get; set; } = new();
 }
+
+/// <summary>Thống kê dashboard (A1).</summary>
+public class DashboardStats
+{
+    public int TotalOrders { get; set; }
+    public double TotalRevenue { get; set; }
+    public int OpenOrders { get; set; }
+    public int ClosedOrders { get; set; }
+    public int CancelledOrders { get; set; }
+    public List<DailyRevenue> RevenueByDay { get; set; } = new();
+    public List<TopCustomer> TopCustomers { get; set; } = new();
+    public List<TopItem> TopItems { get; set; } = new();
+}
+
+public class DailyRevenue
+{
+    public string Date { get; set; } = "";
+    public double Revenue { get; set; }
+    public int Orders { get; set; }
+}
+
+public class TopCustomer
+{
+    public string CardCode { get; set; } = "";
+    public string CardName { get; set; } = "";
+    public double Revenue { get; set; }
+    public int Orders { get; set; }
+}
+
+public class TopItem
+{
+    public string ItemCode { get; set; } = "";
+    public string ItemName { get; set; } = "";
+    public double Quantity { get; set; }
+    public double Revenue { get; set; }
+}

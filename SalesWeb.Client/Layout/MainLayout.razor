@@ -5,6 +5,7 @@
 @inject MasterDataCache MdCache
 @inject NavigationManager Nav
 @inject IThemeService ThemeService
+@inject IJSRuntime JS
 
 <a class="fm-skip-link" href="#fm-main-content" @onclick="FocusMain" @onclick:preventDefault>Bỏ qua tới nội dung chính</a>
 <div class="fm-layout fm-app-root">
@@ -16,6 +17,8 @@
             </div>
         </div>
         <FluentNav Width="100%">
+            <FluentNavItem Href="/dashboard" Match="NavLinkMatch.All"
+                           IconRest="@(new Icons.Regular.Size20.ChartMultiple())">Dashboard</FluentNavItem>
             <FluentNavItem Href="/" Match="NavLinkMatch.All"
                            IconRest="@(new Icons.Regular.Size20.DocumentBulletList())">Danh sách đơn</FluentNavItem>
             @if (Auth.HasRole("sales"))
@@ -68,6 +71,30 @@
                 <div class="fm-topbar__title">@PageTitle</div>
             </div>
             <div class="fm-topbar__user">
+                @* C9: Tìm kiếm toàn cục (Ctrl+K) *@
+                <div style="position:relative">
+                    <FluentTextInput @bind-Value="globalQ" Placeholder="Tìm đơn/KH… (Ctrl+K)"
+                                     @onkeydown="OnGlobalSearchKey" @ref="globalSearchRef"
+                                     Style="width:220px" aria-label="Tìm kiếm toàn cục" />
+                    @if (globalResults.Count > 0)
+                    {
+                        <div class="fm-global-results" @onclick:stopPropagation="true">
+                            @foreach (var r in globalResults)
+                            {
+                                <button type="button" class="fm-global-item" @onclick="() => GoGlobal(r)">
+                                    <b>@r.Title</b>
+                                    <span>@r.Subtitle</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+                @* C9: Dark mode toggle *@
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="ToggleDarkMode"
+                              Title="@(isDark ? "Chế độ sáng" : "Chế độ tối")"
+                              aria-label="Chuyển chế độ sáng/tối"
+                              IconStart="@(isDark ? new Icons.Regular.Size20.WeatherSunny() : new Icons.Regular.Size20.WeatherMoon())">
+                </FluentButton>
                 @if (b1Mode == "live")
                 {
                     <span class="fm-conn-banner fm-conn-banner--ok" style="margin:0; padding:4px 10px; background:var(--fm-gold-soft); color:#8a6d00">
@@ -133,6 +160,13 @@
         await RefreshFailedAsync();
         // Tải trước cache KH/hàng hoá nền — autocomplete phản hồi ngay, không chờ
         _ = MdCache.PreloadAsync();
+        // C9: khôi phục chế độ tối từ localStorage
+        try
+        {
+            var dark = await JS.InvokeAsync<string?>("localStorage.getItem", "sw_dark");
+            if (dark == "1") { isDark = true; await JS.InvokeVoidAsync("Blazor.theme.setDarkMode", true); }
+        }
+        catch { /* bỏ qua */ }
         Nav.LocationChanged += OnLocationChanged;
         timer = new System.Threading.Timer(async _ => await RefreshFailedAsync(),
             null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
@@ -145,6 +179,98 @@
     }
 
     private void ToggleNav() => navOpen = !navOpen;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // C9: Ctrl+K → focus ô tìm kiếm toàn cục
+            try
+            {
+                await JS.InvokeVoidAsync("eval", @"
+                    document.addEventListener('keydown', (e) => {
+                        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                            e.preventDefault();
+                            const input = document.querySelector('.fm-topbar__user fluent-text-input input');
+                            if (input) input.focus();
+                        }
+                    });");
+            }
+            catch { /* bỏ qua */ }
+        }
+    }
+
+    // C9: Dark mode
+    private bool isDark;
+
+    private async Task ToggleDarkMode()
+    {
+        isDark = !isDark;
+        try
+        {
+            await JS.InvokeVoidAsync("Blazor.theme.setDarkMode", isDark);
+            await JS.InvokeVoidAsync("localStorage.setItem", "sw_dark", isDark ? "1" : "0");
+        }
+        catch { /* bỏ qua */ }
+    }
+
+    // C9: Tìm kiếm toàn cục
+    private string? globalQ;
+    private FluentTextInput? globalSearchRef;
+    private List<GlobalResult> globalResults = new();
+    private record GlobalResult(string Kind, string Title, string Subtitle, string Url);
+
+    private async Task OnGlobalSearchKey(KeyboardEventArgs e)
+    {
+        // Ctrl+K focus ô tìm kiếm (đăng ký global qua JS)
+        if (e.Key == "Enter")
+        {
+            await DoGlobalSearch();
+        }
+        else if (e.Key == "Escape")
+        {
+            globalResults.Clear();
+        }
+    }
+
+    private async Task DoGlobalSearch()
+    {
+        globalResults.Clear();
+        var q = (globalQ ?? "").Trim();
+        if (q.Length < 2) return;
+        try
+        {
+            // Tìm đơn hàng theo số đơn
+            if (int.TryParse(q.TrimStart('#'), out var docNum))
+            {
+                var paged = await Api.ListOrdersAsync("", "", 5, 0);
+                var match = paged?.Items.FirstOrDefault(o => o.DocNum == docNum);
+                if (match is not null)
+                    globalResults.Add(new("order", $"Đơn #{match.DocNum}",
+                        $"{match.CardName} — {FmtMoney(match.DocTotal)}", $"/orders/{match.DocEntry}"));
+            }
+            // Tìm khách hàng từ cache
+            var customers = await MdCache.SearchCustomersAsync(q);
+            globalResults.AddRange(customers.Take(5).Select(c =>
+                new GlobalResult("customer", c.CardName ?? c.CardCode, $"KH: {c.CardCode}",
+                    $"/?card_code={Uri.EscapeDataString(c.CardCode)}")));
+            // Tìm hàng hoá từ cache
+            var items = await MdCache.SearchItemsAsync(q);
+            globalResults.AddRange(items.Take(5).Select(i =>
+                new GlobalResult("item", i.ItemName ?? i.ItemCode, $"Hàng: {i.ItemCode}", "/orders/new")));
+        }
+        catch { /* bỏ qua */ }
+    }
+
+    private void GoGlobal(GlobalResult r)
+    {
+        globalResults.Clear();
+        globalQ = "";
+        Nav.NavigateTo(r.Url);
+    }
+
+    private static string FmtMoney(double n) =>
+        n.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
 
     private async Task RefreshModeAsync()
     {

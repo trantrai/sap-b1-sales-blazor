@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SalesWeb.Server.Data;
 using SalesWeb.Server.Middleware;
 using SalesWeb.Server.Services;
@@ -28,6 +29,7 @@ public sealed class AuthController : ApiBaseController
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     public ActionResult<TokenOut> Login([FromBody] LoginIn body)
     {
         var user = AuthService.Authenticate(body.Username, body.Password);
@@ -41,11 +43,45 @@ public sealed class AuthController : ApiBaseController
             throw new ApiException(400, $"Database '{companyDb}' chưa được khai báo trong hệ thống.");
         AuditLog.LogAction(user.Username, "auth.login", "User", user.Username,
             new Dictionary<string, object?> { ["company_db"] = companyDb }, ClientIp);
+        var cfg = HttpContext.RequestServices.GetRequiredService<AppConfig>();
         return Ok(new TokenOut
         {
             AccessToken = _auth.CreateToken(user.Username, user.Role, companyDb),
             TokenType = "bearer",
+            RefreshToken = _auth.IssueRefreshToken(user.Username, companyDb),
+            ExpiresIn = cfg.JwtExpireMinutes * 60,
         });
+    }
+
+    /// <summary>Đổi refresh token lấy cặp token mới (B5).</summary>
+    [HttpPost("refresh")]
+    public ActionResult<TokenOut> Refresh([FromBody] RefreshIn body)
+    {
+        var result = _auth.ConsumeRefreshToken(body.RefreshToken);
+        if (result is null)
+            throw new ApiException(401, "Refresh token không hợp lệ hoặc đã hết hạn");
+        var (username, companyDb) = result.Value;
+        var user = AuthService.GetUser(username);
+        if (user is null || !user.Active)
+            throw new ApiException(401, "Tài khoản đã bị vô hiệu hoá");
+        var cfg = HttpContext.RequestServices.GetRequiredService<AppConfig>();
+        AuditLog.LogAction(username, "auth.refresh", "User", username, null, ClientIp);
+        return Ok(new TokenOut
+        {
+            AccessToken = _auth.CreateToken(username, user.Role, companyDb),
+            TokenType = "bearer",
+            RefreshToken = _auth.IssueRefreshToken(username, companyDb),
+            ExpiresIn = cfg.JwtExpireMinutes * 60,
+        });
+    }
+
+    /// <summary>Đăng xuất — thu hồi refresh token (B5).</summary>
+    [HttpPost("logout")]
+    public ActionResult Logout([FromBody] RefreshIn body)
+    {
+        if (!string.IsNullOrWhiteSpace(body.RefreshToken))
+            _auth.RevokeRefreshToken(body.RefreshToken);
+        return Ok(new { ok = true });
     }
 
     [HttpGet("me")]

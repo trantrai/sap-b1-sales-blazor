@@ -69,11 +69,68 @@ public class ApiClient(HttpClient http, TokenStore tokens)
         object? body = null, bool auth = true)
     {
         using var res = await SendRawAsync(method, url, body, auth);
+        // B5: 401 → thử refresh token 1 lần rồi gọi lại
+        if (res.StatusCode == HttpStatusCode.Unauthorized && auth && await TryRefreshAsync())
+        {
+            using var retry = await SendRawAsync(method, url, body, auth);
+            var retryText = await retry.Content.ReadAsStringAsync();
+            if (!retry.IsSuccessStatusCode)
+                throw new ApiException((int)retry.StatusCode, ReadDetail(retryText, (int)retry.StatusCode));
+            if (string.IsNullOrWhiteSpace(retryText)) return default;
+            return JsonSerializer.Deserialize<T>(retryText, JsonOpts);
+        }
         var text = await res.Content.ReadAsStringAsync();
         if (!res.IsSuccessStatusCode)
             throw new ApiException((int)res.StatusCode, ReadDetail(text, (int)res.StatusCode));
         if (string.IsNullOrWhiteSpace(text)) return default;
         return JsonSerializer.Deserialize<T>(text, JsonOpts);
+    }
+
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
+    private bool _refreshFailed;
+
+    /// <summary>Đổi refresh token lấy access token mới. Trả về false nếu không refresh được.</summary>
+    private async Task<bool> TryRefreshAsync()
+    {
+        if (_refreshFailed) return false;
+        await _refreshLock.WaitAsync();
+        try
+        {
+            if (_refreshFailed) return false;
+            var refresh = await tokens.GetRefreshTokenAsync();
+            if (string.IsNullOrEmpty(refresh)) { _refreshFailed = true; return false; }
+            var req = new HttpRequestMessage(HttpMethod.Post, "api/auth/refresh")
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new RefreshIn { RefreshToken = refresh }, JsonOpts),
+                    Encoding.UTF8, "application/json"),
+            };
+            using var res = await http.SendAsync(req);
+            if (!res.IsSuccessStatusCode) { _refreshFailed = true; return false; }
+            var text = await res.Content.ReadAsStringAsync();
+            var tok = JsonSerializer.Deserialize<TokenOut>(text, JsonOpts);
+            if (tok is null || string.IsNullOrEmpty(tok.AccessToken)) { _refreshFailed = true; return false; }
+            await tokens.SetTokenAsync(tok.AccessToken);
+            await tokens.SetRefreshTokenAsync(tok.RefreshToken);
+            return true;
+        }
+        catch { _refreshFailed = true; return false; }
+        finally { _refreshLock.Release(); }
+    }
+
+    /// <summary>Đăng xuất: thu hồi refresh token phía server + xoá token local.</summary>
+    public async Task LogoutAsync()
+    {
+        try
+        {
+            var refresh = await tokens.GetRefreshTokenAsync();
+            if (!string.IsNullOrEmpty(refresh))
+                await SendNoContentAsync(HttpMethod.Post, "api/auth/logout",
+                    new RefreshIn { RefreshToken = refresh }, auth: false);
+        }
+        catch { /* bỏ qua */ }
+        await tokens.ClearAsync();
+        _refreshFailed = false;
     }
 
     private async Task SendNoContentAsync(HttpMethod method, string url,
@@ -199,6 +256,33 @@ public class ApiClient(HttpClient http, TokenStore tokens)
             ["operation"] = operation, ["status"] = status, ["q"] = q,
             ["limit"] = limit.ToString(),
         }));
+
+    /// <summary>Nhật ký thao tác người dùng (B6) — ai làm gì, khi nào.</summary>
+    public Task<List<Dictionary<string, object>>?> ListUserAuditAsync(int limit = 200)
+        => SendAsync<List<Dictionary<string, object>>>(HttpMethod.Get,
+            $"api/auth/audit?limit={limit}");
+
+    /// <summary>Thống kê dashboard (A1).</summary>
+    public Task<DashboardStats?> GetDashboardStatsAsync()
+        => SendAsync<DashboardStats>(HttpMethod.Get, "api/orders/stats");
+
+    /// <summary>Tải file Excel danh sách đơn (A2) — trả về bytes.</summary>
+    public async Task<byte[]?> ExportOrdersExcelAsync(string? status, string? cardCode)
+    {
+        var token = await tokens.GetTokenAsync();
+        var req = new HttpRequestMessage(HttpMethod.Get,
+            Q("api/orders/export", new Dictionary<string, string?>
+            {
+                ["status"] = status, ["card_code"] = cardCode,
+            }));
+        if (!string.IsNullOrEmpty(token))
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var res = await http.SendAsync(req);
+        if (res.StatusCode == System.Net.HttpStatusCode.Unauthorized && await TryRefreshAsync())
+            return await ExportOrdersExcelAsync(status, cardCode);
+        res.EnsureSuccessStatusCode();
+        return await res.Content.ReadAsByteArrayAsync();
+    }
 
     public Task<AuditDetailOut?> GetAuditDetailAsync(int id)
         => SendAsync<AuditDetailOut>(HttpMethod.Get, $"api/audit/{id}");

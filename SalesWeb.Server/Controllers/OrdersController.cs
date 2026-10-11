@@ -46,6 +46,63 @@ public sealed class OrdersController : ApiBaseController
     private static string FmtLimit(double n)
         => n.ToString("N2", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
 
+    /// <summary>Thống kê dashboard (A1).</summary>
+    [HttpGet("stats")]
+    [RequireRole("viewer")]
+    public async Task<ActionResult<DashboardStats>> Stats()
+        => Ok(await Svc(CurrentUser.Username).GetDashboardStatsAsync());
+
+    /// <summary>Xuất Excel danh sách đơn hàng (A2).</summary>
+    [HttpGet("export")]
+    [RequireRole("viewer")]
+    public async Task<IActionResult> ExportExcel(
+        [FromQuery] string status = "",
+        [FromQuery] string? card_code = null,
+        [FromQuery] DateOnly? date_from = null,
+        [FromQuery] DateOnly? date_to = null)
+    {
+        var user = CurrentUser;
+        if (user.Role == "sales") { /* sales chỉ xuất đơn của mình — lọc theo sales_person_code */ }
+        var paged = await Svc(user.Username).ListAsync(status, card_code,
+            user.Role == "sales" ? user.SalesPersonCode : null,
+            date_from, date_to, 1000, 0);
+        using var wb = new ClosedXML.Excel.XLWorkbook();
+        var ws = wb.Worksheets.Add("DonHang");
+        var headers = new[] { "Số đơn", "Ngày", "Mã KH", "Tên KH", "Tổng tiền", "Trạng thái", "Ghi chú" };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            ws.Cell(1, i + 1).Value = headers[i];
+            ws.Cell(1, i + 1).Style.Font.Bold = true;
+            ws.Cell(1, i + 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#1E3A5F");
+            ws.Cell(1, i + 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+        }
+        int row = 2;
+        foreach (var o in paged.Items)
+        {
+            ws.Cell(row, 1).Value = o.DocNum;
+            ws.Cell(row, 2).Value = o.DocDate;
+            ws.Cell(row, 3).Value = o.CardCode;
+            ws.Cell(row, 4).Value = o.CardName;
+            ws.Cell(row, 5).Value = o.DocTotal;
+            ws.Cell(row, 5).Style.NumberFormat.Format = "#,##0";
+            ws.Cell(row, 6).Value = o.Status switch
+            {
+                "open" => "Đang mở", "closed" => "Đã đóng",
+                "cancelled" => "Đã huỷ", _ => o.Status,
+            };
+            ws.Cell(row, 7).Value = o.Comments;
+            row++;
+        }
+        ws.Columns().AdjustToContents();
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        AuditLog.LogAction(user.Username, "order.export", "Orders", $"excel:{paged.Items.Count}",
+            new Dictionary<string, object?> { ["status"] = status, ["count"] = paged.Items.Count }, ClientIp);
+        return File(ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"donhang-{DateTime.Now:yyyyMMdd-HHmmss}.xlsx");
+    }
+
     [HttpGet("")]
     [RequireRole("viewer")]
     public async Task<ActionResult<PagedOrders>> List(

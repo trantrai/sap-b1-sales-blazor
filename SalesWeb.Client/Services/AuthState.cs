@@ -52,6 +52,7 @@ public class AuthState : AuthenticationStateProvider
         if (string.IsNullOrEmpty(t.AccessToken))
             throw new ApiException(401, "Đăng nhập thất bại.");
         await _tokens.SetTokenAsync(t.AccessToken);
+        await _tokens.SetRefreshTokenAsync(t.RefreshToken);
         User = await _api.GetMeAsync()
             ?? throw new ApiException(401, "Không lấy được thông tin người dùng.");
         await _tokens.SetUserAsync(User);
@@ -61,8 +62,7 @@ public class AuthState : AuthenticationStateProvider
 
     public async Task LogoutAsync(bool silent = false)
     {
-        await _tokens.SetTokenAsync(null);
-        await _tokens.SetUserAsync(null);
+        await _api.LogoutAsync();
         User = null;
         if (!silent)
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(Anonymous)));

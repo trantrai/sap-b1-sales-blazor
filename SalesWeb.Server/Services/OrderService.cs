@@ -272,6 +272,64 @@ public sealed class OrderService
         catch (B1Exception ex) { throw B1ErrorToHttp(ex); }
     }
 
+    /// <summary>Thống kê dashboard (A1): lấy tối đa 1000 đơn gần nhất, tổng hợp trong bộ nhớ.</summary>
+    public async Task<DashboardStats> GetDashboardStatsAsync()
+    {
+        var paged = await ListAsync("", null, null, null, null, 1000, 0);
+        var orders = paged.Items;
+        var stats = new DashboardStats
+        {
+            TotalOrders = paged.Total,
+            TotalRevenue = orders.Where(o => o.Status != "cancelled").Sum(o => o.DocTotal),
+            OpenOrders = orders.Count(o => o.Status == "open"),
+            ClosedOrders = orders.Count(o => o.Status == "closed"),
+            CancelledOrders = orders.Count(o => o.Status == "cancelled"),
+        };
+        // Doanh thu 30 ngày gần nhất
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var byDay = orders
+            .Where(o => o.Status != "cancelled" && DateOnly.TryParse(o.DocDate, out _))
+            .GroupBy(o => DateOnly.Parse(o.DocDate))
+            .ToDictionary(g => g.Key, g => (Revenue: g.Sum(o => o.DocTotal), Orders: g.Count()));
+        for (int i = 29; i >= 0; i--)
+        {
+            var d = today.AddDays(-i);
+            byDay.TryGetValue(d, out var v);
+            stats.RevenueByDay.Add(new DailyRevenue
+            {
+                Date = d.ToString("dd/MM"),
+                Revenue = v.Revenue,
+                Orders = v.Orders,
+            });
+        }
+        // Top 5 khách hàng
+        stats.TopCustomers = orders
+            .Where(o => o.Status != "cancelled")
+            .GroupBy(o => new { o.CardCode, o.CardName })
+            .Select(g => new TopCustomer
+            {
+                CardCode = g.Key.CardCode,
+                CardName = g.Key.CardName,
+                Revenue = g.Sum(o => o.DocTotal),
+                Orders = g.Count(),
+            })
+            .OrderByDescending(t => t.Revenue).Take(5).ToList();
+        // Top 5 hàng hoá (cần chi tiết dòng — lấy từ orders đã có lines)
+        stats.TopItems = orders
+            .Where(o => o.Status != "cancelled")
+            .SelectMany(o => o.Lines)
+            .GroupBy(l => new { l.ItemCode, Name = l.Description })
+            .Select(g => new TopItem
+            {
+                ItemCode = g.Key.ItemCode,
+                ItemName = g.Key.Name,
+                Quantity = g.Sum(l => l.Quantity),
+                Revenue = g.Sum(l => (l.LineTotal ?? l.Quantity * l.Price)),
+            })
+            .OrderByDescending(t => t.Revenue).Take(5).ToList();
+        return stats;
+    }
+
     public Task<OrderOut> UpdateAsync(int docEntry, OrderUpdate order)
     {
         var req = ToRequestDict(order);

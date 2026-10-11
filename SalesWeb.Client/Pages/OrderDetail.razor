@@ -37,6 +37,17 @@ else if (order is not null)
                               IconStart="@(new Icons.Regular.Size20.Edit())">
                     Sửa ghi chú
                 </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Subtle"
+                              OnClick="@(() => Nav.NavigateTo($"/orders/new?copyFrom={DocEntry}"))"
+                              IconStart="@(new Icons.Regular.Size20.Copy())"
+                              Title="Tạo đơn mới với cùng KH và dòng hàng">
+                    Copy thành đơn mới
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="PrintOrder"
+                              IconStart="@(new Icons.Regular.Size20.Print())"
+                              Title="In đơn hàng">
+                    In
+                </FluentButton>
             }
             @if (isOpen && Auth.HasRole("manager"))
             {
@@ -247,6 +258,12 @@ else if (order is not null)
 
     private Task CloseOrder() =>
         Run(() => Api.CloseOrderAsync(DocEntry, null), "Đóng toàn bộ đơn hàng?", "Đã đóng đơn");
+
+    private async Task PrintOrder()
+    {
+        try { await JS.InvokeVoidAsync("eval", "window.print()"); }
+        catch { /* bỏ qua */ }
+    }
 
     private Task CancelOrder() =>
         Run(() => Api.CancelOrderAsync(DocEntry), "HỦY đơn hàng này? Không thể hoàn tác.", "Đã hủy đơn");

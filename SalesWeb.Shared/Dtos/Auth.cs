@@ -12,6 +12,14 @@ public class TokenOut
 {
     public string AccessToken { get; set; } = "";
     public string TokenType { get; set; } = "bearer";
+    /// <summary>Refresh token (B5) — dùng để cấp lại access token khi hết hạn.</summary>
+    public string RefreshToken { get; set; } = "";
+    public int ExpiresIn { get; set; }
+}
+
+public class RefreshIn
+{
+    public string RefreshToken { get; set; } = "";
 }
 
 public class UserOut

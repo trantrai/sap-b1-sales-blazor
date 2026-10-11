@@ -117,6 +117,19 @@ public static class Db
             CREATE INDEX IF NOT EXISTS idx_sl_audit_created ON sl_audit(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_sl_audit_op ON sl_audit(operation);
             CREATE INDEX IF NOT EXISTS idx_sl_audit_success ON sl_audit(success);
+
+            -- Refresh token (B5): lưu hash, xoay vòng mỗi lần dùng
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token_hash TEXT NOT NULL UNIQUE,
+                username TEXT NOT NULL,
+                company_db TEXT DEFAULT '',
+                expires_at TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                revoked INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS idx_refresh_hash ON refresh_tokens(token_hash);
+            CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(username);
             """;
         cmd.ExecuteNonQuery();
 

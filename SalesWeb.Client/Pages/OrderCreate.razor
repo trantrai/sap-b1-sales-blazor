@@ -7,6 +7,13 @@
 
 <PageTitle>Tạo đơn hàng — Sale Order</PageTitle>
 
+@if (!string.IsNullOrEmpty(copyNotice))
+{
+    <div class="fm-alert fm-alert--success" role="status" style="margin-bottom:14px">
+        <div>@copyNotice</div>
+    </div>
+}
+
 @if (!string.IsNullOrEmpty(error))
 {
     <div class="fm-alert fm-alert--error" role="alert">
@@ -320,7 +327,45 @@
             taxCodes = await Api.ListTaxCodesAsync() ?? new();
         }
         catch (ApiException ex) { error = ex.Message; }
+        // A3: copy từ đơn cũ (?copyFrom=docEntry)
+        if (copyFrom.HasValue)
+            await LoadCopySource(copyFrom.Value);
     }
+
+    [SupplyParameterFromQuery]
+    public int? CopyFrom { get; set; }
+    private int? copyFrom => CopyFrom;
+
+    private async Task LoadCopySource(int docEntry)
+    {
+        try
+        {
+            var (order, _) = await Api.GetOrderAsync(docEntry);
+            if (order is null) { error = $"Không tìm thấy đơn #{docEntry} để copy."; return; }
+            customer = new CustomerOut { CardCode = order.CardCode, CardName = order.CardName };
+            await OnCustomerChanged();
+            headerDiscount = order.DiscountPercent;
+            comments = order.Comments;
+            docDueDate = DateTime.Today.AddDays(7);
+            numAtCard = order.NumAtCard;
+            docCurrency = string.IsNullOrEmpty(order.Currency) ? "VND" : order.Currency;
+            lines = order.Lines.Select(l => new LineVm
+            {
+                PickedItem = new ItemOut { ItemCode = l.ItemCode, ItemName = l.Description },
+                ItemCode = l.ItemCode,
+                ItemName = l.Description,
+                Quantity = l.Quantity,
+                Price = l.Price,
+                DiscountPercent = l.DiscountPercent,
+                Warehouse = string.IsNullOrEmpty(l.Warehouse) ? null : l.Warehouse,
+                TaxCode = string.IsNullOrEmpty(l.TaxCode) ? null : l.TaxCode,
+            }).ToList();
+            if (lines.Count == 0) lines.Add(new LineVm());
+            copyNotice = $"Đã copy từ đơn #{order.DocNum} — kiểm tra lại trước khi tạo đơn mới.";
+        }
+        catch (ApiException ex) { error = ex.Message; }
+    }
+    private string? copyNotice;
 
     private async Task OnCustomerSearch(OptionsSearchEventArgs<CustomerOut> e)
     {

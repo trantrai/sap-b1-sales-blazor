@@ -16,6 +16,16 @@
     </p>
 </div>
 
+<FluentTabs ActiveTabId="@activeTab" OnTabChange="OnTabChange" Style="margin-bottom:14px">
+    <FluentTab Id="sl" Header="Service Layer"
+               IconStart="@(new Icons.Regular.Size20.CloudLink())" />
+    <FluentTab Id="user" Header="Thao tác người dùng"
+               IconStart="@(new Icons.Regular.Size20.PersonClock())" />
+</FluentTabs>
+
+@if (activeTab == "sl")
+{
+
 @if (msg is not null)
 {
     <div class="@MsgClass" role="status">
@@ -118,6 +128,35 @@
         </p>
     }
 </div>
+}
+else
+{
+    @* ===== Tab: Thao tác người dùng (B6) ===== *@
+    <div class="fm-card">
+        <div class="fm-filterbar">
+            <FluentTextInput @bind-Value="userQ" Placeholder="Lọc theo người dùng / hành động…"
+                            Style="min-width:260px" @onkeydown="OnUserSearchKey" />
+            <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="LoadUserAudit"
+                          IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">Làm mới</FluentButton>
+            <div class="fm-filterbar__spacer"></div>
+            <span style="font-size:12px; color:var(--fm-text-2)">@userItems.Count bản ghi</span>
+        </div>
+        <div class="fm-table-wrap">
+            <FluentDataGrid EmptyContent="@emptyAudit" Items="@FilteredUserAudit.AsQueryable()"
+                            TGridItem="Dictionary<string,object>" Style="width:100%">
+                <PropertyColumn Property="@(r => Str(r, "created_at"))" Title="Thời gian" Sortable="true" />
+                <PropertyColumn Property="@(r => Str(r, "username"))" Title="Người dùng" Sortable="true" />
+                <PropertyColumn Property="@(r => ActionLabel(Str(r, "action")))" Title="Hành động" />
+                <PropertyColumn Property="@(r => Str(r, "entity"))" Title="Đối tượng" />
+                <PropertyColumn Property="@(r => Str(r, "entity_key"))" Title="Mã" />
+                <PropertyColumn Property="@(r => Str(r, "ip"))" Title="IP" />
+            </FluentDataGrid>
+        </div>
+        <p class="fm-hint" style="margin-top:10px">
+            Ghi nhận: đăng nhập, tạo/sửa đơn hàng, huỷ/đóng đơn, quản trị user, thay đổi cài đặt.
+        </p>
+    </div>
+}
 
 @if (detail is not null)
 {
@@ -228,6 +267,65 @@
     {
         if (e.Key == "Enter") await Load();
     }
+
+    // ---------- Tab "Thao tác người dùng" (B6) ----------
+    private string activeTab = "sl";
+    private List<Dictionary<string, object>> userItems = new();
+    private string? userQ;
+
+    private void OnTabChange(TabChangeEventArgs e)
+    {
+        activeTab = e.ActiveId ?? "sl";
+        if (activeTab == "user" && userItems.Count == 0)
+            _ = LoadUserAudit();
+    }
+
+    private IEnumerable<Dictionary<string, object>> FilteredUserAudit
+    {
+        get
+        {
+            var q = (userQ ?? "").Trim();
+            if (string.IsNullOrEmpty(q)) return userItems;
+            return userItems.Where(r =>
+                Str(r, "username").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                ActionLabel(Str(r, "action")).Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                Str(r, "entity_key").Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private async Task LoadUserAudit()
+    {
+        try { userItems = await Api.ListUserAuditAsync() ?? new(); }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+    }
+
+    private async Task OnUserSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") StateHasChanged();
+    }
+
+    private static string Str(Dictionary<string, object> r, string key)
+    {
+        if (!r.TryGetValue(key, out var v) || v is null) return "";
+        // JSON snake_case → key có thể ở dạng camelCase
+        return v.ToString() ?? "";
+    }
+
+    private static string ActionLabel(string action) => action switch
+    {
+        "auth.login" => "Đăng nhập",
+        "auth.refresh" => "Gia hạn phiên",
+        "order.create" => "Tạo đơn hàng",
+        "order.update" => "Sửa đơn hàng",
+        "order.cancel" => "Huỷ đơn hàng",
+        "order.close" => "Đóng đơn hàng",
+        "user.create" => "Tạo người dùng",
+        "user.update" => "Sửa người dùng",
+        "settings.connection" => "Đổi cấu hình kết nối",
+        "settings.discount_limits" => "Đổi ngưỡng chiết khấu",
+        "settings.databases" => "Đổi danh sách database",
+        _ => action,
+    };
 
     private async Task DoRetry(int id)
     {

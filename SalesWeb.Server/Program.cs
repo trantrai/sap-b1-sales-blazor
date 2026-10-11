@@ -1,6 +1,8 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using SalesWeb.Server.Data;
 using SalesWeb.Server.Middleware;
@@ -27,6 +29,7 @@ builder.Services.AddSingleton<B1ClientPool>();
 // IB1Client theo request: proxy điều hướng tới client của đúng CompanyDB
 // mà user đã chọn lúc đăng nhập (claim b1_db trong JWT)
 builder.Services.AddScoped<IB1Client, B1ClientProxy>();
+builder.Services.AddHostedService<BackupService>();
 
 // ---------- JWT bearer ----------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -66,6 +69,30 @@ builder.Services.Configure<ApiBehaviorOptions>(o =>
 
 builder.Services.AddOpenApi();
 
+// ---------- Rate limiting (B7) ----------
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // Chính sách chung: 300 req/phút/IP
+    o.AddPolicy("api", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 300,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+    // Đăng nhập: 10 lần/phút/IP — chống dò mật khẩu
+    o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
+
 var app = builder.Build();
 
 // ---------- Pipeline ----------
@@ -79,6 +106,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

@@ -8,6 +8,7 @@ namespace SalesWeb.Client.Services;
 public class TokenStore(IJSRuntime js)
 {
     private const string TokenKey = "sw_token";
+    private const string RefreshKey = "sw_refresh";
     private const string UserKey = "sw_user";
 
     public ValueTask<string?> GetTokenAsync()
@@ -17,6 +18,21 @@ public class TokenStore(IJSRuntime js)
         => string.IsNullOrEmpty(token)
             ? js.InvokeVoidAsync("localStorage.removeItem", TokenKey)
             : js.InvokeVoidAsync("localStorage.setItem", TokenKey, token);
+
+    public ValueTask<string?> GetRefreshTokenAsync()
+        => js.InvokeAsync<string?>("localStorage.getItem", RefreshKey);
+
+    public ValueTask SetRefreshTokenAsync(string? token)
+        => string.IsNullOrEmpty(token)
+            ? js.InvokeVoidAsync("localStorage.removeItem", RefreshKey)
+            : js.InvokeVoidAsync("localStorage.setItem", RefreshKey, token);
+
+    public async Task ClearAsync()
+    {
+        await js.InvokeVoidAsync("localStorage.removeItem", TokenKey);
+        await js.InvokeVoidAsync("localStorage.removeItem", RefreshKey);
+        await js.InvokeVoidAsync("localStorage.removeItem", UserKey);
+    }
 
     public async Task<UserOut?> GetUserAsync()
     {

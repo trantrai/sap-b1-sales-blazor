@@ -90,6 +90,79 @@ public sealed class AuthService
 
     public static byte[] JwtKey(AppConfig cfg) => Encoding.UTF8.GetBytes(cfg.JwtSecret);
 
+    // ---------------- Refresh token (B5) ----------------
+    /// <summary>Thời hạn refresh token: 7 ngày.</summary>
+    public static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
+
+    public string IssueRefreshToken(string username, string companyDb = "")
+    {
+        var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var hash = Sha256(raw);
+        using var conn = Db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO refresh_tokens (token_hash, username, company_db, expires_at)
+            VALUES ($h, $u, $db, datetime('now', '+7 days'))
+            """;
+        cmd.Parameters.AddWithValue("$h", hash);
+        cmd.Parameters.AddWithValue("$u", username);
+        cmd.Parameters.AddWithValue("$db", companyDb ?? "");
+        cmd.ExecuteNonQuery();
+        // Dọn token hết hạn/cũ của user (giữ tối đa 5)
+        using var clean = conn.CreateCommand();
+        clean.CommandText = """
+            DELETE FROM refresh_tokens
+            WHERE username = $u AND id NOT IN (
+                SELECT id FROM refresh_tokens WHERE username = $u
+                ORDER BY id DESC LIMIT 5)
+            """;
+        clean.Parameters.AddWithValue("$u", username);
+        clean.ExecuteNonQuery();
+        return raw;
+    }
+
+    /// <summary>Đổi refresh token lấy cặp token mới (xoay vòng: thu hồi token cũ).</summary>
+    public (string Username, string CompanyDb)? ConsumeRefreshToken(string rawToken)
+    {
+        var hash = Sha256(rawToken ?? "");
+        using var conn = Db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT username, company_db FROM refresh_tokens
+            WHERE token_hash = $h AND revoked = 0 AND datetime(expires_at) > datetime('now')
+            """;
+        cmd.Parameters.AddWithValue("$h", hash);
+        using var rd = cmd.ExecuteReader();
+        if (!rd.Read()) return null;
+        var username = rd.GetString(0);
+        var companyDb = rd.IsDBNull(1) ? "" : rd.GetString(1);
+        rd.Close();
+        // Thu hồi token vừa dùng (xoay vòng)
+        using var rev = conn.CreateCommand();
+        rev.CommandText = "UPDATE refresh_tokens SET revoked = 1 WHERE token_hash = $h";
+        rev.Parameters.AddWithValue("$h", hash);
+        rev.ExecuteNonQuery();
+        // User còn active không?
+        var user = GetUser(username);
+        if (user is null || !user.Active) return null;
+        return (username, companyDb);
+    }
+
+    public void RevokeRefreshToken(string rawToken)
+    {
+        using var conn = Db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE refresh_tokens SET revoked = 1 WHERE token_hash = $h";
+        cmd.Parameters.AddWithValue("$h", Sha256(rawToken ?? ""));
+        cmd.ExecuteNonQuery();
+    }
+
+    private static string Sha256(string s)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(s));
+        return Convert.ToHexString(bytes);
+    }
+
     // ---------------- Users ----------------
     public static AppUser? GetUser(string username)
     {
