@@ -4,45 +4,121 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens từ sale-order-styles.css */
+:root {
+  --navy-900: #12305a;
+  --blue: #1d4e89;
+  --blue-700: #12386b;
+  --blue-100: #dbe7f7;
+  --yellow: #ffc928;
+  --orange: #d9431a;
+  --bg: #faf8f1;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #eceef5;
+  --line-strong: #dfe3ec;
+  --field-border: #b7cae6;
+  --field-bg: #f3f8ff;
+  --green-100: #dcfce7;
+  --green-700: #166534;
+  --red-100: #fee2e2;
+  --red-700: #b91c1c;
+}
+
 @layer base {
   body {
-    @apply bg-[#faf8f1] text-slate-800 font-sans antialiased;
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #1b2430;
+    background: var(--bg);
+    @apply antialiased;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  td {
+    padding: 12px 8px;
+    border-bottom: 1px solid #eef0f3;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-brand-blue hover:bg-navy-700 text-white font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] transition-colors inline-flex items-center justify-center gap-2;
+    @apply text-white font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] transition-colors inline-flex items-center justify-center gap-2;
+    background: var(--blue);
+    border: 1px solid var(--blue);
+  }
+  .btn-primary:hover {
+    background: var(--blue-700);
   }
   .btn-secondary {
-    @apply bg-white text-slate-800 font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] border border-slate-200 hover:bg-slate-50 transition-colors inline-flex items-center justify-center gap-2;
+    @apply font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] transition-colors inline-flex items-center justify-center gap-2;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+  }
+  .btn-secondary:hover {
+    @apply bg-slate-50;
   }
   .btn-danger {
-    @apply bg-brand-orange hover:bg-red-700 text-white font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] transition-colors inline-flex items-center justify-center gap-2;
+    @apply text-white font-semibold rounded-[10px] px-4 py-2.5 min-h-[44px] transition-colors inline-flex items-center justify-center gap-2;
+    background: var(--orange);
+    border: 1px solid var(--orange);
   }
   .card {
-    @apply bg-white border border-[#eceef5] rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,.04),0_8px_24px_rgba(15,23,42,.04)];
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.04);
   }
   .input-field {
-    @apply border-[1.5px] border-[#b7cae6] bg-[#f3f8ff] rounded-[10px] px-3 py-2.5 text-sm w-full;
-    box-shadow: inset 0 -3px 0 #ffc928;
+    border: 1.5px solid var(--field-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: var(--field-bg);
+    box-shadow: inset 0 -3px 0 var(--yellow);
+    min-height: 20px;
+    @apply w-full;
   }
   .input-field:focus {
-    @apply outline-none border-brand-blue ring-2 ring-brand-blue/20;
+    @apply outline-none;
+    border-color: var(--blue);
   }
   .form-label {
-    @apply text-xs font-semibold text-navy-900 mb-1 block;
+    font-size: 12px;
+    color: var(--navy-900);
+    font-weight: 600;
+    margin-bottom: 4px;
+    @apply block;
   }
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
   }
   .badge-open {
-    @apply bg-blue-100 text-blue-800;
+    background: var(--blue-100);
+    color: var(--blue-700);
   }
   .badge-closed {
     @apply bg-slate-100 text-slate-600;
   }
   .badge-cancelled {
-    @apply bg-red-100 text-red-800;
+    background: var(--red-100);
+    color: var(--red-700);
+  }
+  .badge-success {
+    background: var(--green-100);
+    color: var(--green-700);
   }
 }
