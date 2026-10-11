@@ -16,8 +16,9 @@
 <div class="fm-card" style="margin-bottom:14px">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
         <h2 class="fm-card__title" style="margin:0">Người dùng (@users.Count)</h2>
-        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="() => OpenDialog(null)">
-            + Thêm người dùng
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="() => OpenDialog(null)"
+                      IconStart="@(new Icons.Regular.Size20.PersonAdd())">
+            Thêm người dùng
         </FluentButton>
     </div>
     <div class="fm-table-wrap">

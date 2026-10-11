@@ -33,17 +33,20 @@ else if (order is not null)
             <span style="flex:1"></span>
             @if (isOpen && Auth.HasRole("sales"))
             {
-                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="() => editing = !editing">
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="() => editing = !editing"
+                              IconStart="@(new Icons.Regular.Size20.Edit())">
                     Sửa ghi chú
                 </FluentButton>
             }
             @if (isOpen && Auth.HasRole("manager"))
             {
-                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="busy" OnClick="CloseOrder">
+                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="busy" OnClick="CloseOrder"
+                              IconStart="@(new Icons.Regular.Size20.Checkmark())">
                     Đóng đơn
                 </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Primary" Disabled="busy" OnClick="CancelOrder"
-                              Style="background:#E0522F">
+                              Style="background:#E0522F"
+                              IconStart="@(new Icons.Regular.Size20.Dismiss())">
                     Hủy đơn
                 </FluentButton>
             }
@@ -74,8 +77,10 @@ else if (order is not null)
             {
                 <div style="display:flex; gap:8px">
                     <FluentTextInput @bind-Value="comments" Style="flex:1" />
-                    <FluentButton Appearance="ButtonAppearance.Primary" Disabled="busy" OnClick="SaveComments">Lưu</FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="() => editing = false">Bỏ</FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Primary" Disabled="busy" OnClick="SaveComments"
+                                      IconStart="@(new Icons.Regular.Size20.Save())">Lưu</FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="() => editing = false"
+                                      IconStart="@(new Icons.Regular.Size20.Dismiss())">Bỏ</FluentButton>
                 </div>
             }
             else

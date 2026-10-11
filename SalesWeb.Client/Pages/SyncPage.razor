@@ -26,7 +26,8 @@
         <h2 class="fm-card__title" style="margin:0">Trạng thái đồng bộ</h2>
         @if (canSync)
         {
-            <FluentButton Appearance="ButtonAppearance.Primary" Disabled="syncing" OnClick="@(() => Start(new() { "customers", "items", "tax_codes" }))">
+            <FluentButton Appearance="ButtonAppearance.Primary" Disabled="syncing" OnClick="@(() => Start(new() { "customers", "items", "tax_codes" }))"
+                          IconStart="@(new Icons.Regular.Size20.ArrowSync())">
                 @(syncing ? "Đang đồng bộ…" : "Đồng bộ tất cả")
             </FluentButton>
         }

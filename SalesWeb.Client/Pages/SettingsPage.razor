@@ -129,10 +129,12 @@ else
             </div>
         </div>
         <div style="margin-top:10px; display:flex; gap:10px">
-            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="AddDb">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="AddDb"
+                IconStart="@(new Icons.Regular.Size20.Add())">
                 + Thêm database
             </FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveDbs">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveDbs"
+                IconStart="@(new Icons.Regular.Size20.Save())">
                 @(busy == "dbs" ? "Đang lưu…" : "Lưu danh sách database")
             </FluentButton>
         </div>
@@ -155,17 +157,20 @@ else
             </div>
         </div>
         <div style="margin-top:10px">
-            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveLimits">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveLimits"
+                IconStart="@(new Icons.Regular.Size20.Save())">
                 @(busy == "limits" ? "Đang lưu…" : "Lưu ngưỡng chiết khấu")
             </FluentButton>
         </div>
     </div>
 
     <div style="display:flex; gap:10px">
-        <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoTest">
+        <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoTest"
+                IconStart="@(new Icons.Regular.Size20.PlugConnected())">
             @(busy == "test" ? "Đang kiểm tra…" : "Kiểm tra kết nối")
         </FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@(busy is not null)" OnClick="DoSave">
+        <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@(busy is not null)" OnClick="DoSave"
+                IconStart="@(new Icons.Regular.Size20.Save())">
             @(busy == "save" ? "Đang lưu…" : "Lưu & áp dụng ngay")
         </FluentButton>
     </div>
