@@ -39,6 +39,12 @@ docker compose up -d --build   # http://localhost:8080
 - **Đa database**: admin khai báo danh sách CompanyDB, user chọn database lúc đăng nhập (JWT claim `b1_db`), dữ liệu tách biệt từng DB
 - **Cache master data phía client**: autocomplete KH/hàng hoá tải 1 lần, chỉ tìm khi nhập từ 2 ký tự, lọc tức thì trên bộ nhớ (không gọi API mỗi lần gõ); tự làm mới sau đồng bộ
 - **Icon Fluent UI** trực quan trên menu điều hướng và các nút thao tác
+- **Dashboard**: KPI, biểu đồ doanh số 30 ngày (SVG), top 5 KH/hàng hoá
+- **Xuất Excel** danh sách đơn hàng, **copy đơn hàng** từ đơn cũ, **in** đơn hàng
+- **Dark mode**, tìm kiếm toàn cục (**Ctrl+K**), bản in đơn hàng
+- **Refresh token** xoay vòng (access 8h + refresh 7 ngày, tự refresh khi 401)
+- **Rate limiting**: 300 req/phút chung, login 10/phút chống dò mật khẩu
+- **Backup SQLite** tự động mỗi 24h (giữ 7 bản), **audit thao tác người dùng**
 - Tra cứu KH / hàng hóa / kho / thuế suất, autocomplete
 - Đồng bộ master data vào SQLite local (`POST /api/sync`)
 - Audit mọi thao tác Service Layer + retry thông minh (`/audit`)
@@ -46,6 +52,9 @@ docker compose up -d --build   # http://localhost:8080
 - Cài đặt kết nối B1 runtime (mật khẩu mã hóa AES-GCM), quản lý user
 
 ## Màn hình
+
+### Dashboard (v2.2)
+![Dashboard](docs/screenshots/dashboard.png)
 
 ### Đăng nhập
 ![Đăng nhập](docs/screenshots/login.png)

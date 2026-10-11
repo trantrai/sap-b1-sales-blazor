@@ -195,6 +195,44 @@ Response `200`:
 ]
 ```
 
+### POST /api/auth/refresh — Đổi refresh token (v2.2)
+
+Request:
+```json
+{ "refresh_token": "<refresh_token>" }
+```
+
+Response `200` — cặp token mới (token cũ bị thu hồi):
+```json
+{ "access_token": "<jwt>", "token_type": "bearer",
+  "refresh_token": "<new_refresh>", "expires_in": 28800 }
+```
+
+Lỗi `401`: `{ "detail": "Refresh token không hợp lệ hoặc đã hết hạn" }`
+
+### POST /api/auth/logout — Thu hồi refresh token (v2.2)
+
+Request: `{ "refresh_token": "<refresh_token>" }` → `200 { "ok": true }`
+
+### GET /api/orders/stats — Thống kê dashboard (v2.2)
+
+Response `200`:
+```json
+{
+  "total_orders": 120, "total_revenue": 1500000000,
+  "open_orders": 45, "closed_orders": 70, "cancelled_orders": 5,
+  "revenue_by_day": [{ "date": "11/10", "revenue": 50000000, "orders": 3 }],
+  "top_customers": [{ "card_code": "C20000", "card_name": "…", "revenue": 200000000, "orders": 12 }],
+  "top_items": [{ "item_code": "A00001", "item_name": "…", "quantity": 100, "revenue": 150000000 }]
+}
+```
+
+### GET /api/orders/export — Xuất Excel (v2.2)
+
+Query: `status`, `card_code` (lọc như danh sách đơn).
+Response `200` — file `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+(`donhang-yyyyMMdd-HHmmss.xlsx`), 7 cột: Số đơn, Ngày, Mã KH, Tên KH, Tổng tiền, Trạng thái, Ghi chú.
+
 ---
 
 ## 4. Đồng bộ & giám sát

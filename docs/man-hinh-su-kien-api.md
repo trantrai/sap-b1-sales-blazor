@@ -59,12 +59,14 @@ JSON dùng snake_case. Auth: JWT Bearer (claims `sub`, `role`, `b1_db`), lưu tr
 | 2.3 | Bấm "Lọc" (`ApplyFilter`) | Gọi API danh sách với tham số lọc, reset về trang 1 |
 | 2.4 | Bấm "Trước" / "Sau" (`PrevPage` / `NextPage`) | Tăng/giảm `skip`, gọi lại API |
 | 2.5 | Bấm vào một dòng đơn | Điều hướng tới `/orders/{DocEntry}` |
+| 2.6 | Bấm "Xuất Excel" (v2.2) | `ExportExcel` — tải file `.xlsx` danh sách đơn theo bộ lọc hiện tại |
 
 **API:**
 
 | Method | Endpoint | Tham số | Kết quả |
 |---|---|---|---|
 | GET | `/api/orders` | `status`, `card_code`, `top`, `skip` | `{"items":[...],"total":n}` — mỗi item có `doc_entry`, `doc_num`, `card_code`, `card_name`, `doc_date`, `doc_total`, `status` |
+| GET | `/api/orders/export` | `status`, `card_code` | File Excel `.xlsx` (v2.2) |
 
 **Phân quyền:** yêu cầu vai trò `sales` trở lên.
 
@@ -163,6 +165,8 @@ hủy đơn, đóng dòng.
 | 4.4 | Bấm "Bỏ" | tắt chế độ `editing`, hủy thay đổi |
 | 4.5 | Bấm "Hủy đơn" (`CancelOrder`, role `manager`+) | `confirm()` → gọi API hủy |
 | 4.6 | Bấm "Đóng dòng" (`CloseOrder`, role `manager`+) | gọi API đóng các dòng còn mở |
+| 4.7 | Bấm "Copy thành đơn mới" (v2.2, role `sales`+) | Điều hướng `/orders/new?copyFrom={DocEntry}` — điền sẵn KH, dòng hàng, CK |
+| 4.8 | Bấm "In" (v2.2) | `window.print()` — CSS `@media print` chỉ in nội dung đơn |
 
 **Hiển thị chiết khấu:**
 
@@ -266,6 +270,34 @@ hủy đơn, đóng dòng.
 | PUT | `/api/users/{username}` | `{"full_name","role","is_active",...}` | cập nhật user |
 
 **Phân quyền:** chỉ `admin`.
+
+---
+
+## 9. Dashboard — `/dashboard` (`Dashboard.razor`) (v2.2)
+
+**Mục đích:** tổng quan kinh doanh — KPI, biểu đồ doanh số, top KH/hàng hoá.
+
+**Sự kiện:**
+
+| # | Thành phần | Xử lý |
+|---|---|---|
+| 9.1 | Mở trang | `GetDashboardStatsAsync` — tải 1 lần |
+| 9.2 | Thẻ KPI | Tổng đơn, doanh số, đang mở/đã đóng/đã huỷ |
+| 9.3 | Biểu đồ cột SVG | Doanh số 30 ngày (tooltip: ngày, doanh số, số đơn) |
+| 9.4 | Bảng top 5 | Khách hàng và hàng hoá theo doanh số |
+
+**API:** `GET /api/orders/stats` → `DashboardStats`.
+
+---
+
+## 10. UX chung (v2.2)
+
+| # | Tính năng | Xử lý |
+|---|---|---|
+| 10.1 | Dark mode (nút mặt trăng, topbar) | `Blazor.theme.setDarkMode`, lưu `localStorage sw_dark` |
+| 10.2 | Tìm kiếm toàn cục (topbar) | Gõ ≥2 ký tự → tìm đơn (theo số), KH/hàng (từ `MasterDataCache`); **Ctrl+K** focus ô tìm kiếm |
+| 10.3 | Copy đơn hàng | `/orders/new?copyFrom={docEntry}` — điền sẵn toàn bộ |
+| 10.4 | In đơn hàng | Nút "In" ở chi tiết đơn + CSS `@media print` |
 
 ---
 

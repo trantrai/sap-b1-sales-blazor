@@ -105,6 +105,10 @@ Controllers giữ nguyên DI `IB1Client`, không cần sửa khi thêm database 
 | AD-07 | Ngưỡng CK cấu hình trong Settings (v2.0) | Admin tự điều chỉnh chính sách CK, hiệu lực ngay không cần deploy | Hardcode ngưỡng theo role trong code |
 | AD-08 | Cache master data phía client (v2.1) | Autocomplete KH/hàng hoá tải 1 lần, lọc trên bộ nhớ — giảm tải server, phản hồi tức thì, không gọi API mỗi lần gõ | Gọi API search mỗi keystroke (tốn request, chậm khi mạng yếu) |
 | AD-09 | Icon Fluent UI cho nav + nút (v2.1) | Trực quan, nhất quán design system; dùng package `Microsoft.FluentUI.AspNetCore.Components.Icons` riêng của v5 | Emoji/ký tự text (☰, +) — thiếu chuyên nghiệp, không đồng nhất |
+| AD-10 | Refresh token xoay vòng (v2.2) | Access token ngắn (8h) + refresh token 7 ngày lưu hash trong DB; client tự refresh khi 401 — vừa an toàn vừa tiện | Access token dài hạn (rủi ro lộ token) hoặc bắt login lại thường xuyên |
+| AD-11 | Rate limiting (v2.2) | Dùng sẵn `Microsoft.AspNetCore.RateLimiting`: 300 req/phút chung, login 10/phút chống dò mật khẩu | Không giới hạn — dễ bị spam/brute-force |
+| AD-12 | Backup SQLite tự động (v2.2) | `BackgroundService` + `VACUUM INTO` mỗi 24h, giữ 7 bản — backup nhất quán ngay cả khi DB đang mở | Copy file thủ công (rủi ro DB đang ghi) |
+| AD-13 | Dashboard vẽ bằng SVG thuần (v2.2) | Không thêm dependency chart; đủ cho KPI + bar chart + top lists | Thêm Chart.js/ECharts (nặng, phức tạp hơn) |
 
 ---
 
@@ -142,6 +146,11 @@ sap-b1-sales-blazor/
 | PATCH | `/api/auth/users/{username}` | admin | Sửa user (role, active, password…) |
 | GET | `/api/auth/roles` | admin | Ma trận phân quyền RBAC |
 | GET | `/api/orders?status=&card_code=&top=&skip=` | sales+ | Danh sách đơn (phân trang) |
+| GET | `/api/orders/stats` | viewer+ | Thống kê dashboard (A1, v2.2) |
+| GET | `/api/orders/export?status=&card_code=` | viewer+ | Xuất Excel danh sách đơn (A2, v2.2) |
+| POST | `/api/auth/refresh` | public | Đổi refresh token lấy cặp token mới (B5, v2.2) |
+| POST | `/api/auth/logout` | — | Thu hồi refresh token (B5, v2.2) |
+| GET | `/api/auth/audit?limit=` | manager+ | Nhật ký thao tác người dùng (B6, v2.2) |
 | GET | `/api/orders/{docEntry}` | sales+ | Chi tiết đơn (kèm ETag) |
 | POST | `/api/orders` | sales+ | Tạo đơn (idempotent theo `external_id`; validate CK) |
 | PUT | `/api/orders/{docEntry}` | sales+ | Sửa đơn (ghi chú…; validate CK) |
@@ -278,6 +287,45 @@ doc_total        = tổng_sau_CK_dòng − CK_đơn_hàng
 
 Luồng: Login → `MainLayout` preload nền → user gõ ≥2 ký tự → lọc tức thì trên RAM (0 API call).
 
+### 3.10. Hoàn thiện v2.2 — Dashboard, xuất Excel, bảo mật & UX
+
+**Dashboard (`GET /api/orders/stats` → `Dashboard.razor`):**
+- Server: `OrderService.GetDashboardStatsAsync()` — lấy tối đa 1000 đơn gần nhất từ B1,
+  tổng hợp trong bộ nhớ: KPI (tổng đơn/doanh số/mở/đóng/huỷ), doanh thu 30 ngày,
+  top 5 KH, top 5 hàng hoá.
+- Client: vẽ biểu đồ cột bằng **SVG thuần** (không thêm dependency), thẻ KPI, bảng top lists.
+
+**Xuất Excel (`GET /api/orders/export`):**
+- Server dùng **ClosedXML**: header navy/bold, cột tổng tiền định dạng số, `AdjustToContents`.
+- Client: nút "Xuất Excel" ở màn danh sách đơn → tải file qua JS download (base64).
+- Ghi audit `order.export`.
+
+**Copy đơn hàng (A3):**
+- `OrderDetail`: nút "Copy thành đơn mới" → `/orders/new?copyFrom={docEntry}`.
+- `OrderCreate`: `[SupplyParameterFromQuery] CopyFrom` → tải đơn cũ, điền sẵn KH/dòng hàng/CK,
+  hiện banner xanh "Đã copy từ đơn #…".
+
+**Refresh token (B5):**
+- `POST /api/auth/login` trả `access_token` + `refresh_token` (7 ngày, lưu SHA-256 hash) + `expires_in`.
+- `POST /api/auth/refresh`: xoay vòng (thu hồi token cũ, cấp cặp mới); `POST /api/auth/logout`: thu hồi.
+- Client `ApiClient`: tự gọi refresh 1 lần khi gặp 401 rồi thử lại request (có semaphore chống race).
+
+**Audit người dùng (B6):**
+- Đã có sẵn `audit_logs` + `AuditLog.LogAction` — bổ sung tab "Thao tác người dùng" trong `AuditPage`
+  (`GET /api/auth/audit`), lọc theo user/hành động, map label tiếng Việt.
+
+**Rate limiting (B7):**
+- `AddRateLimiter`: policy `api` (300 req/phút/IP) gắn ở `ApiBaseController`,
+  policy `login` (10 req/phút/IP) gắn ở `POST /api/auth/login`.
+
+**Backup SQLite (B8):**
+- `BackupService : BackgroundService`: `VACUUM INTO` mỗi 24h vào `{DataDir}/backups/`, giữ 7 bản mới nhất.
+
+**UX (C9):**
+- Dark mode: nút mặt trăng trên topbar → `Blazor.theme.setDarkMode`, lưu `localStorage`.
+- Tìm kiếm toàn cục: ô search trên topbar + **Ctrl+K** → tìm đơn (theo số), KH/hàng (từ `MasterDataCache`).
+- Bản in: nút "In" ở chi tiết đơn + CSS `@media print` ẩn nav/nút.
+
 ### 3.7. Bảo mật
 - **JWT HS256** cho session web; mật khẩu hash **PBKDF2 200k iterations**.
 - **RBAC** — ma trận 10 quyền × 4 vai trò:
@@ -400,6 +448,21 @@ Trong `_Imports.razor`: `@using Icons = Microsoft.FluentUI.AspNetCore.Components
   từ danh sách đã khai báo — mặc định theo DB đã chọn lúc login, mật khẩu mã hóa AES-GCM).
 - Card **"Danh sách database truy cập"**: thêm/xóa/lưu các CompanyDB.
 - Card **"Ngưỡng chiết khấu theo vai trò"**: sales/manager tối đa (%).
+
+**h) Dashboard (`Dashboard.razor` — `/dashboard`, v2.2)**
+- 5 thẻ KPI: tổng đơn, doanh số, đang mở/đã đóng/đã huỷ.
+- Biểu đồ cột SVG: doanh số 30 ngày gần nhất (tooltip chi tiết từng ngày).
+- Top 5 khách hàng và top 5 hàng hoá theo doanh số.
+
+**i) Giám sát (`AuditPage.razor`)** — 2 tab (v2.2):
+- Tab "Service Layer": như cũ (retry, badge lỗi).
+- Tab "Thao tác người dùng": nhật ký ai làm gì (đăng nhập, tạo/sửa/huỷ/đóng đơn, quản trị user, đổi cài đặt), lọc theo user/hành động.
+
+**j) UX chung (v2.2):**
+- Dark mode (nút trên topbar, nhớ lựa chọn qua `localStorage`).
+- Tìm kiếm toàn cục trên topbar (**Ctrl+K**): tìm đơn theo số, KH/hàng từ cache.
+- Nút "In" ở chi tiết đơn + CSS `@media print`.
+- Nút "Xuất Excel" ở danh sách đơn; nút "Copy thành đơn mới" ở chi tiết đơn.
 
 **g) Mobile (≤900px)** — theo báo cáo QA v2.0:
 - Sidebar thành drawer trượt + nút hamburger ☰ trên topbar (tự đóng khi chuyển trang).
