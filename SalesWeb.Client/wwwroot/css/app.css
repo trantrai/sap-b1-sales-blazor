@@ -443,7 +443,13 @@ fluent-data-grid .column-header { background: #faf9f8; }
   /* Tổng tiền: xếp chồng, full width trên mobile */
   .fm-submit-bar { flex-direction: column; align-items: stretch !important; }
   .fm-submit-bar .fm-totals { width: 100%; margin-left: 0; }
-  .fm-table-wrap { overflow-x: auto; }
+  .fm-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Bảng dòng hàng: đặt min-width để các cột không bị đè lên nhau trên mobile */
+  .fm-table-wrap .fm-table { min-width: 860px; }
+  .fm-table-wrap .fm-table td { white-space: nowrap; }
+  .fm-table-wrap .fm-table td .fm-field,
+  .fm-table-wrap .fm-table td fluent-autocomplete,
+  .fm-table-wrap .fm-table td fluent-text-input { white-space: normal; }
 }
 
 /* ===== C9: Tìm kiếm toàn cục ===== */

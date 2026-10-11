@@ -87,7 +87,7 @@
                     {
                         var ln = lines[idx];
                         var i = idx;
-                        <tr class="@(string.IsNullOrEmpty(ln.ItemCode) ? "is-draft" : "")">
+                        <tr @key="ln" class="@(string.IsNullOrEmpty(ln.ItemCode) ? "is-draft" : "")">
                             <td>@(i + 1)</td>
                             <td>
                                 <ItemSearch Selected="@ln.PickedItem"

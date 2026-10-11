@@ -3,7 +3,8 @@
 <FluentAutocomplete TOption="ItemOut" TValue="ItemOut"
                     OnOptionsSearch="OnSearch"
                     OptionText="@(i => $"{i.ItemCode} — {i.ItemName}")"
-                    @bind-SelectedItem="Selected"
+                    SelectedItem="Selected"
+                    SelectedItemChanged="SelectedChanged"
                     Placeholder="Gõ ít nhất 2 ký tự để tìm hàng…"
                     MaximumOptionsSearch="20" />
 
