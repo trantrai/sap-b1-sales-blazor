@@ -96,7 +96,7 @@ SalesWeb.Client/   Blazor WebAssembly + FluentBlazor (8 trang)
 
 ## Tài liệu kỹ thuật
 
-- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database, cache client, icon
-- [API payload chi tiết](docs/api-payload-chi-tiet.md) — endpoint, request/response từng API
-- [Màn hình — Sự kiện — API](docs/man-hinh-su-kien-api.md) — chi tiết từng màn hình và sự kiện
-- [Báo cáo QA UI/UX](docs/bao-cao-qa-ui-ux.md) — kết quả kiểm thử giao diện
+- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database, cache client, icon, v2.2 (dashboard, refresh token, rate limit, backup, dark mode)
+- [API payload chi tiết](docs/api-payload-chi-tiet.md) — endpoint, request/response từng API (kể cả `auth/refresh`, `orders/stats`, `orders/export`)
+- [Màn hình — Sự kiện — API](docs/man-hinh-su-kien-api.md) — chi tiết từng màn hình và sự kiện (kể cả Dashboard, tab audit người dùng)
+- [Báo cáo QA UI/UX](docs/bao-cao-qa-ui-ux.md) — kết quả kiểm thử giao diện (v2.0 + phụ lục QA v2.2)

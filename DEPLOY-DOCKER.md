@@ -60,3 +60,6 @@ docker run -d --name salesweb -p 8080:8080 \
 - Image ~230MB (runtime aspnet:9.0).
 - Health check: `GET /health` → `{"status":"ok","b1_mode":"mock"}`.
 - SQLite + file cấu hình nằm trong volume `./data` — backup thư mục này là đủ.
+- **Tự động backup (v2.2):** app tự backup SQLite mỗi 24h bằng `VACUUM INTO` vào
+  `./data/backups/` (giữ 7 bản mới nhất). Muốn backup thủ công: copy file
+  `./data/backups/backup-*.db` ra ngoài — file này mở được trực tiếp bằng SQLite.

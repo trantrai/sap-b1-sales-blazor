@@ -64,3 +64,32 @@ Primary/Outline phân biệt rõ, trạng thái đơn dùng chip màu nhất qu�
 | F10 | Mở drawer mobile → chuyển trang | ✅ Drawer tự đóng |
 
 Build: `dotnet build` 0 lỗi. Đã push GitHub (commit `245be82`).
+
+---
+
+## Phụ lục — QA v2.2 (2026-10-11)
+
+Phạm vi: Dashboard, xuất Excel, copy đơn, refresh token, audit người dùng, rate limit,
+backup SQLite, dark mode, tìm kiếm toàn cục (Ctrl+K), in đơn.
+
+| # | Kịch bản | Kết quả |
+|---|---|---|
+| G1 | `GET /api/orders/stats` | ✅ KPI + 30 ngày doanh số + top 5 KH/hàng |
+| G2 | Dashboard UI | ✅ 5 thẻ KPI, biểu đồ cột SVG có tooltip, ảnh `dashboard.png` |
+| G3 | Xuất Excel | ✅ File `.xlsx` mở được, header navy, đúng bộ lọc |
+| G4 | Copy đơn hàng | ✅ `/orders/new?copyFrom=` điền sẵn KH/dòng/CK, banner xanh |
+| G5 | Refresh token | ✅ Login trả cặp token; refresh xoay vòng; token cũ hết hiệu lực |
+| G6 | Client tự refresh khi 401 | ✅ Retry 1 lần sau refresh thành công |
+| G7 | Logout thu hồi token | ✅ Refresh sau logout → 401 |
+| G8 | Tab audit người dùng | ✅ 98 bản ghi: đăng nhập/xuất Excel/gia hạn phiên, label tiếng Việt |
+| G9 | Rate limit login | ✅ 10×401 rồi 429 (test 12 request liên tiếp) |
+| G10 | Backup SQLite | ✅ File `backup-*.db` sinh ra sau startup, mở được |
+| G11 | Dark mode | ✅ `setThemeMode('dark')` + CSS override; nhớ lựa chọn qua localStorage |
+| G12 | Ctrl+K tìm kiếm | ✅ Focus ô search; tìm đơn/KH/hàng từ cache |
+| G13 | In đơn hàng | ✅ Nút In + CSS `@media print` ẩn nav/nút |
+
+Issue đã sửa trong đợt QA:
+- `Blazor.theme.setDarkMode` không tồn tại → dùng `setThemeMode('dark'/'light')`.
+- Tab audit không đổi nội dung → chuyển sang `@bind-ActiveTabId` + `StateHasChanged()` sau load.
+
+Build: `dotnet build` 0 lỗi.
