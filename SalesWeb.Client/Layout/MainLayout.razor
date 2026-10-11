@@ -63,17 +63,36 @@
     }
     <div class="fm-main">
         <div class="fm-topbar">
-            <div style="display:flex; align-items:center; gap:10px; min-width:0">
+            <div class="fm-topbar__left">
                 <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="ToggleNav"
                               Title="Menu" aria-label="Mở menu điều hướng" class="fm-nav-toggle"
                               IconStart="@(new Icons.Regular.Size20.Navigation())">
                 </FluentButton>
                 <div class="fm-topbar__title">@PageTitle</div>
             </div>
-            <div class="fm-topbar__user">
+            <div class="fm-topbar__actions">
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="ToggleDarkMode"
+                              Title="@(isDark ? "Chế độ sáng" : "Chế độ tối")"
+                              aria-label="Chuyển chế độ sáng/tối" class="fm-icon-btn"
+                              IconStart="@(isDark ? new Icons.Regular.Size20.WeatherSunny() : new Icons.Regular.Size20.WeatherMoon())">
+                </FluentButton>
+                @if (b1Mode == "live")
+                {
+                    <span class="fm-conn-banner fm-conn-banner--ok fm-badge-hide-mobile" style="margin:0; padding:4px 10px; background:var(--fm-gold-soft); color:#8a6d00">
+                        <span class="dot"></span> B1 trực tiếp
+                    </span>
+                }
+                else
+                {
+                    <span class="fm-conn-banner fm-conn-banner--ok fm-badge-hide-mobile" style="margin:0; padding:4px 10px">
+                        <span class="dot"></span> B1 mock
+                    </span>
+                }
+            </div>
+            <div class="fm-topbar__search">
                 @* C9: Tìm kiếm toàn cục (Ctrl+K) *@
                 <div style="position:relative" class="fm-search-wrap">
-                    <FluentTextInput @bind-Value="globalQ" Placeholder="Tìm đơn/KH… (Ctrl+K)"
+                    <FluentTextInput @bind-Value="globalQ" Placeholder="Tìm đơn/KH…"
                                      @onkeydown="OnGlobalSearchKey" @ref="globalSearchRef"
                                      class="fm-search-input" aria-label="Tìm kiếm toàn cục" />
                     @if (globalResults.Count > 0)
@@ -89,24 +108,6 @@
                         </div>
                     }
                 </div>
-                @* C9: Dark mode toggle *@
-                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="ToggleDarkMode"
-                              Title="@(isDark ? "Chế độ sáng" : "Chế độ tối")"
-                              aria-label="Chuyển chế độ sáng/tối"
-                              IconStart="@(isDark ? new Icons.Regular.Size20.WeatherSunny() : new Icons.Regular.Size20.WeatherMoon())">
-                </FluentButton>
-                @if (b1Mode == "live")
-                {
-                    <span class="fm-conn-banner fm-conn-banner--ok" style="margin:0; padding:4px 10px; background:var(--fm-gold-soft); color:#8a6d00">
-                        <span class="dot"></span> B1 trực tiếp
-                    </span>
-                }
-                else
-                {
-                    <span class="fm-conn-banner fm-conn-banner--ok" style="margin:0; padding:4px 10px">
-                        <span class="dot"></span> B1 mock
-                    </span>
-                }
             </div>
         </div>
         <div class="fm-page" id="fm-main-content" @ref="mainContentRef" tabindex="-1">

@@ -780,49 +780,7 @@ html {
   .fm-sidebar { width: 200px !important; }
 }
 
-/* ============================================================
-   FIX TOPBAR MOBILE — 2026-10-11
-   ============================================================ */
-.fm-search-input { width: 220px; }
-.fm-search-wrap { position: relative; }
-
-@media (max-width: 768px) {
-  .fm-topbar {
-    padding: 8px 12px;
-    min-height: 56px; height: auto;
-    flex-wrap: wrap; row-gap: 8px;
-    align-items: center;
-  }
-  .fm-topbar > div:first-child {
-    display: flex; align-items: center; gap: 8px;
-    flex: 1 1 auto; min-width: 0;
-  }
-  .fm-topbar__title {
-    font-size: 16px; font-weight: 700;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .fm-topbar__user {
-    display: flex; align-items: center; gap: 6px;
-    flex: 0 0 auto;
-  }
-  /* Search xuống hàng riêng, full width */
-  .fm-search-wrap {
-    order: 10; flex: 1 1 100%; width: 100%;
-  }
-  .fm-search-input { width: 100% !important; }
-  .fm-search-input input {
-    width: 100% !important; min-height: 40px; font-size: 16px;
-  }
-  /* Ẩn badge B1 mock trên mobile để gọn */
-  .fm-topbar__user .fm-conn-banner { display: none; }
-  /* Nút dark mode gọn */
-  .fm-topbar__user fluent-button { min-width: 40px; }
-  .fm-global-results {
-    position: fixed !important; top: 110px; left: 12px; right: 12px;
-    z-index: 100; max-height: 50vh; overflow-y: auto;
-  }
-}
-
+/* (CSS topbar mới ở cuối file) */
 /* ============================================================
    SIDEBAR NAVY ĐẬM — theo sale-order-styles.css
    ============================================================ */
@@ -872,3 +830,50 @@ html {
   background: #fff !important; color: #d9431a !important; border-color: #d9431a !important;
 }
 .fm-btn--danger:hover { background: #d9431a !important; color: #fff !important; }
+
+/* ============================================================
+   TOPBAR MỚI — cấu trúc 3 vùng rõ ràng (2026-10-11)
+   ============================================================ */
+.fm-topbar {
+  display: flex; align-items: center;
+  gap: 12px; padding: 0 20px;
+  min-height: 56px; height: auto;
+  background: var(--fm-surface);
+  border-bottom: 2px solid #ffc928;
+  position: sticky; top: 0; z-index: 40;
+  flex-wrap: wrap;
+}
+.fm-topbar__left {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1 1 auto; min-width: 0;
+}
+.fm-topbar__title {
+  font-size: 18px; font-weight: 700; color: var(--fm-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fm-topbar__actions {
+  display: flex; align-items: center; gap: 8px;
+  flex: 0 0 auto;
+}
+.fm-topbar__search {
+  flex: 0 1 auto;
+  display: block;
+}
+.fm-search-input { width: 220px; }
+.fm-search-wrap { position: relative; width: 100%; }
+
+/* Desktop: search nằm cùng hàng */
+@media (min-width: 769px) {
+  .fm-topbar { flex-wrap: nowrap; }
+  .fm-topbar__search { order: 0; }
+}
+/* Mobile: search xuống hàng riêng */
+@media (max-width: 768px) {
+  .fm-topbar { padding: 8px 12px; row-gap: 8px; }
+  .fm-topbar__title { font-size: 16px; }
+  .fm-topbar__search { display: block; order: 10; flex: 1 1 100%; width: 100%; }
+  .fm-search-input, .fm-search-input input { width: 100% !important; }
+  .fm-search-input input { min-height: 40px; font-size: 16px; }
+  .fm-badge-hide-mobile { display: none !important; }
+  .fm-icon-btn { min-width: 40px; min-height: 40px; }
+}
