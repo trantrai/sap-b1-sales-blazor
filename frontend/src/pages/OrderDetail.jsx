@@ -20,7 +20,6 @@ export default function OrderDetail() {
     if (!confirm(confirmMsg)) return;
     try {
       await api.post(`/orders/${id}/${action}`);
-      alert('Thành công');
       const { data } = await api.get(`/orders/${id}`);
       setOrder(data);
     } catch (err) {
@@ -28,89 +27,137 @@ export default function OrderDetail() {
     }
   };
 
-  const handleCopy = () => navigate(`/orders/new?copy=${id}`);
-
   if (loading) {
-    return <Layout title="Chi tiết đơn"><div className="text-center py-12">Đang tải…</div></Layout>;
+    return <Layout title="Chi tiết đơn"><div className="text-center py-12 text-sm text-slate-500">Đang tải...</div></Layout>;
   }
   if (!order) {
-    return <Layout title="Chi tiết đơn"><div className="text-center py-12">Không tìm thấy đơn hàng</div></Layout>;
+    return <Layout title="Chi tiết đơn"><div className="text-center py-12 text-sm text-slate-500">Không tìm thấy đơn hàng</div></Layout>;
   }
 
+  const infoItems = [
+    { label: 'Khách hàng', value: <><div className="font-medium">{order.card_name}</div><div className="text-xs text-slate-400">{order.card_code}</div></> },
+    { label: 'Số PO của KH', value: order.num_at_card || 'PO-2026-001' },
+    { label: 'Ngày chứng từ', value: order.doc_date },
+    { label: 'Ngày giao hàng', value: order.delivery_date || order.doc_date },
+    { label: 'Ngày hạch toán', value: order.tax_date || order.doc_date },
+    { label: 'Tiền tệ / Tỷ giá', value: order.currency || 'VND' },
+    { label: 'Điều khoản thanh toán', value: order.payment_terms || 'Công nợ 30 ngày' },
+    { label: 'Vận chuyển', value: order.shipping_type || 'Giao hàng tiêu chuẩn' },
+    { label: 'Kho nhận hàng', value: order.warehouse || '' },
+    { label: 'Hình thức vận chuyển', value: 'Trụ sở' },
+    { label: 'Dự án', value: order.project_code || '—' },
+    { label: 'Chiết khấu đơn hàng', value: `${order.doc_discount || 0}%` },
+  ];
+
+  const subtotal = (order.lines || []).reduce((s, l) => s + (l.quantity || 0) * (l.price || 0), 0);
+  const docDisc = subtotal * ((order.doc_discount || 0) / 100);
+
   return (
-    <Layout title={`Đơn #${order.doc_num}`}>
-      <div className="card mb-4">
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-          <div>
-            <h3 className="text-xl font-bold text-navy-900">Đơn hàng #{order.doc_num}</h3>
-            <p className="text-slate-500 text-sm mt-1">Ngày: {order.doc_date}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={handleCopy} className="btn-secondary">📋 Copy</button>
-            <button onClick={() => window.print()} className="btn-secondary">🖨️ In</button>
+    <Layout title="Chi tiết đơn">
+      <div className="bg-white rounded-lg border border-slate-200 p-5 mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-5">
+          <Link to="/" className="text-sm text-slate-500 hover:text-navy-900">← Danh sách</Link>
+          <span className="font-semibold text-navy-900">Đơn hàng #{order.doc_num}</span>
+          <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-full font-medium">
+            {order.status === 'open' ? 'Đang mở' : order.status}
+          </span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1.5">
+              ✏️ Sửa ghi chú
+            </button>
+            <button onClick={() => navigate(`/orders/new?copy=${id}`)} className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1.5">
+              📋 Copy thành đơn mới
+            </button>
+            <button onClick={() => window.print()} className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1.5">
+              🖨️ In
+            </button>
             {order.status === 'open' && (
               <>
-                <button
-                  onClick={() => handleAction('close', 'Đóng đơn hàng này?')}
-                  className="btn-secondary"
-                >
-                  🔒 Đóng
+                <button onClick={() => handleAction('close', 'Đóng đơn hàng này?')}
+                  className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1.5">
+                  ☑ Đóng đơn
                 </button>
-                <button
-                  onClick={() => handleAction('cancel', 'Hủy đơn hàng này?')}
-                  className="btn-danger"
-                >
-                  ✕ Hủy
+                <button onClick={() => handleAction('cancel', 'Hủy đơn hàng này?')}
+                  className="px-3 py-1.5 text-sm bg-brand-orange text-white rounded hover:bg-red-700 flex items-center gap-1.5">
+                  ✕ Hủy đơn
                 </button>
               </>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 mb-5">
+          {infoItems.map((item, i) => (
+            <div key={i}>
+              <div className="text-xs text-slate-400 mb-0.5">{item.label}</div>
+              <div className="text-sm text-navy-900">{item.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
-            <div className="form-label">Khách hàng</div>
-            <div className="font-semibold">{order.card_name}</div>
-            <div className="text-sm text-slate-500">{order.card_code}</div>
+            <div className="text-xs text-slate-400 mb-0.5">Tổng tiền</div>
+            <div className="text-sm font-bold text-navy-900">{(order.doc_total || 0).toLocaleString('vi-VN')} VND</div>
           </div>
           <div>
-            <div className="form-label">Tổng tiền</div>
-            <div className="text-2xl font-bold text-brand-blue">
-              {(order.doc_total || 0).toLocaleString('vi-VN')} ₫
-            </div>
+            <div className="text-xs text-slate-400 mb-0.5">Ghi chú</div>
+            <div className="text-sm text-navy-900">{order.notes || 'Đơn mẫu (mock)'}</div>
           </div>
         </div>
 
-        <h4 className="font-bold text-navy-900 mb-3">Chi tiết dòng hàng</h4>
-        <div className="overflow-x-auto -mx-6">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="text-left px-4 py-2">Mã hàng</th>
-                <th className="text-left px-4 py-2">Tên hàng</th>
-                <th className="text-right px-4 py-2">SL</th>
-                <th className="text-right px-4 py-2">Đơn giá</th>
-                <th className="text-right px-4 py-2">Thành tiền</th>
+        <div className="overflow-x-auto -mx-5 px-5">
+          <table className="w-full text-sm min-w-[800px]">
+            <thead>
+              <tr className="text-xs text-slate-500 border-y bg-slate-50/50">
+                <th className="text-left px-3 py-2 font-medium w-8">#</th>
+                <th className="text-left px-3 py-2 font-medium">Hàng hoá</th>
+                <th className="text-right px-3 py-2 font-medium">SL</th>
+                <th className="text-right px-3 py-2 font-medium">Đơn giá</th>
+                <th className="text-right px-3 py-2 font-medium">CK%</th>
+                <th className="text-left px-3 py-2 font-medium">Kho</th>
+                <th className="text-left px-3 py-2 font-medium">Ngày giao</th>
+                <th className="text-left px-3 py-2 font-medium">Trạng thái dòng</th>
               </tr>
             </thead>
             <tbody>
               {(order.lines || []).map((line, i) => (
-                <tr key={i} className="border-t">
-                  <td className="px-4 py-2 font-medium">{line.item_code}</td>
-                  <td className="px-4 py-2">{line.item_name}</td>
-                  <td className="px-4 py-2 text-right">{line.quantity}</td>
-                  <td className="px-4 py-2 text-right">{(line.price || 0).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-2 text-right font-semibold">
-                    {((line.quantity || 0) * (line.price || 0)).toLocaleString('vi-VN')}
+                <tr key={i} className="border-b last:border-0">
+                  <td className="px-3 py-2.5 text-slate-500">{i + 1}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="font-medium text-navy-900">{line.item_name}</div>
+                    <div className="text-xs text-slate-400">{line.item_code}</div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">{line.quantity}</td>
+                  <td className="px-3 py-2.5 text-right">{(line.price || 0).toLocaleString('vi-VN')}</td>
+                  <td className="px-3 py-2.5 text-right">{line.discount || 0}</td>
+                  <td className="px-3 py-2.5">{line.warehouse || '01'}</td>
+                  <td className="px-3 py-2.5">{line.delivery_date || order.doc_date}</td>
+                  <td className="px-3 py-2.5">
+                    <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">Đang mở</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <div className="flex justify-end mt-4">
+          <div className="text-sm text-right">
+            <div className="flex justify-between gap-8 text-slate-600 py-1">
+              <span>Tổng sau CK dòng:</span><span>{subtotal.toLocaleString('vi-VN')} VND</span>
+            </div>
+            <div className="flex justify-between gap-8 text-slate-600 py-1">
+              <span>Chiết khấu đơn hàng ({order.doc_discount || 0}%):</span><span>-{docDisc.toLocaleString('vi-VN')} VND</span>
+            </div>
+            <div className="mt-2 inline-block bg-navy-900 text-white font-bold px-6 py-2 rounded text-sm">
+              TỔNG CỘNG: {(order.doc_total || 0).toLocaleString('vi-VN')} VND
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Link to="/" className="text-brand-blue hover:underline text-sm">← Về danh sách</Link>
+      <Link to="/" className="text-sm text-slate-500 hover:text-navy-900">← Về danh sách</Link>
     </Layout>
   );
 }

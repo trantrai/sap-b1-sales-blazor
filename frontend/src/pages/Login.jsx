@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 export default function Login() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [databases, setDatabases] = useState([]);
   const [companyDb, setCompanyDb] = useState('');
   const [error, setError] = useState('');
@@ -30,61 +30,78 @@ export default function Login() {
       await login(username, password, companyDb);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập thất bại');
+      setError(err.response?.data?.message || 'Sai tên đăng nhập hoặc mật khẩu');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-navy-900 p-4">
-      <div className="card w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-navy-900">SAP B1 Sales</h1>
-          <p className="text-slate-500 text-sm mt-1">Đăng nhập hệ thống</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="form-label">Tên đăng nhập</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input-field"
-              required
-            />
-          </div>
-          <div>
-            <label className="form-label">Mật khẩu</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input-field"
-              required
-            />
-          </div>
-          <div>
-            <label className="form-label">Database</label>
-            <select
-              value={companyDb}
-              onChange={(e) => setCompanyDb(e.target.value)}
-              className="input-field"
-            >
-              {databases.map((db) => (
-                <option key={db.code} value={db.code}>{db.code}</option>
-              ))}
-            </select>
-          </div>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-[10px] text-sm">
-              {error}
+    <div className="min-h-screen flex items-center justify-center bg-[#f0f0f0] p-4">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm overflow-hidden">
+        <div className="h-1 bg-brand-yellow"></div>
+        <div className="p-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-navy-900 rounded flex items-center justify-center text-brand-yellow font-bold">
+              SO
             </div>
-          )}
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
-          </button>
-        </form>
+          </div>
+          <div className="border border-navy-900 rounded px-4 py-2 text-center mb-1">
+            <span className="font-semibold text-navy-900 text-sm">Sale Order</span>
+          </div>
+          <p className="text-center text-xs text-slate-500 mb-6">
+            Hệ thống quản lý đơn hàng bán - SAP B1 HANA
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-slate-700 mb-1 block">Tên đăng nhập</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-brand-blue"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-700 mb-1 block">Mật khẩu</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-brand-blue"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-700 mb-1 block">Cơ sở dữ liệu</label>
+              <select
+                value={companyDb}
+                onChange={(e) => setCompanyDb(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-brand-blue bg-white"
+              >
+                {databases.map((db) => (
+                  <option key={db.code} value={db.code}>{db.code}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-400 mt-1">
+                Chọn CompanyDB SAP B1 để làm việc trong phiên này
+              </p>
+            </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-navy-800 hover:bg-navy-900 text-white font-medium py-2.5 rounded text-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

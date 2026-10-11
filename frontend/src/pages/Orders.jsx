@@ -5,12 +5,16 @@ import api from '../api/client';
 
 const statusBadge = (status) => {
   const map = {
-    open: 'badge badge-open',
-    closed: 'badge badge-closed',
-    cancelled: 'badge badge-cancelled',
+    open: 'bg-blue-100 text-blue-700',
+    closed: 'bg-slate-100 text-slate-600',
+    cancelled: 'bg-red-100 text-red-700',
   };
-  const labels = { open: 'Mở', closed: 'Đóng', cancelled: 'Hủy' };
-  return <span className={map[status] || 'badge'}>{labels[status] || status}</span>;
+  const labels = { open: 'Đang mở', closed: 'Đã đóng', cancelled: 'Đã hủy' };
+  return (
+    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${map[status] || 'bg-slate-100'}`}>
+      {labels[status] || status}
+    </span>
+  );
 };
 
 export default function Orders() {
@@ -25,6 +29,9 @@ export default function Orders() {
   const page = parseInt(searchParams.get('page') || '1');
   const pageSize = 20;
 
+  const [localStatus, setLocalStatus] = useState(status);
+  const [localCardCode, setLocalCardCode] = useState(cardCode);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -34,7 +41,7 @@ export default function Orders() {
       if (docNum) params.doc_num = docNum;
       const { data } = await api.get('/orders', { params });
       setOrders(data.items || data || []);
-      setTotal(data.total || data.length || 0);
+      setTotal(data.total || (data.items || data || []).length || 0);
     } catch {
       setOrders([]);
     } finally {
@@ -43,10 +50,15 @@ export default function Orders() {
   }, [status, cardCode, docNum, page]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    setLocalStatus(status);
+    setLocalCardCode(cardCode);
+  }, [status, cardCode]);
 
-  const updateFilter = (key, value) => {
+  const applyFilter = () => {
     const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value); else next.delete(key);
+    if (localStatus) next.set('status', localStatus); else next.delete('status');
+    if (localCardCode) next.set('card_code', localCardCode); else next.delete('card_code');
     next.set('page', '1');
     setSearchParams(next);
   };
@@ -59,8 +71,8 @@ export default function Orders() {
       if (status) params.status = status;
       if (cardCode) params.card_code = cardCode;
       if (docNum) params.doc_num = docNum;
-      const { data } = await api.get('/orders/export', { params, responseType: 'blob' });
-      const url = URL.createObjectURL(new Blob([data]));
+      const res = await api.get('/orders/export', { params, responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = url;
       a.download = 'don-hang.xlsx';
@@ -72,93 +84,68 @@ export default function Orders() {
 
   return (
     <Layout title="Danh sách đơn">
-      {/* Filter */}
-      <div className="card mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div>
-            <label className="form-label">Trạng thái</label>
-            <select
-              value={status}
-              onChange={(e) => updateFilter('status', e.target.value)}
-              className="input-field"
-            >
-              <option value="">Tất cả</option>
-              <option value="open">Mở</option>
-              <option value="closed">Đóng</option>
-              <option value="cancelled">Hủy</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label">Mã KH</label>
-            <input
-              type="text"
-              value={cardCode}
-              onChange={(e) => updateFilter('card_code', e.target.value)}
-              placeholder="C20000"
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="form-label">Số đơn</label>
-            <input
-              type="text"
-              value={docNum}
-              onChange={(e) => updateFilter('doc_num', e.target.value)}
-              placeholder="5001"
-              className="input-field"
-            />
-          </div>
-          <div className="flex items-end gap-2">
-            <button onClick={load} className="btn-primary flex-1">🔍 Lọc</button>
-            <button onClick={handleExport} className="btn-secondary" title="Xuất Excel">
-              📥
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <select
+          value={localStatus}
+          onChange={(e) => setLocalStatus(e.target.value)}
+          className="px-3 py-2 text-sm border border-slate-300 rounded bg-white min-w-[140px]"
+        >
+          <option value="">Trạng thái</option>
+          <option value="open">Đang mở</option>
+          <option value="closed">Đã đóng</option>
+          <option value="cancelled">Đã hủy</option>
+        </select>
+        <input
+          type="text"
+          value={localCardCode}
+          onChange={(e) => setLocalCardCode(e.target.value)}
+          placeholder="Mã KH (VD: C20000)"
+          className="px-3 py-2 text-sm border border-slate-300 rounded w-44"
+        />
+        <button onClick={applyFilter} className="px-5 py-2 bg-navy-800 hover:bg-navy-900 text-white text-sm font-medium rounded transition-colors">
+          Lọc
+        </button>
+        <button onClick={handleExport} className="px-4 py-2 border border-slate-300 text-sm rounded hover:bg-slate-50 flex items-center gap-1.5">
+          <span>⬇</span> Xuất Excel
+        </button>
+        <span className="ml-auto text-xs text-slate-500">{total} đơn hàng</span>
       </div>
 
-      {/* Table */}
-      <div className="card !p-0 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Đang tải…</div>
+          <div className="text-center py-12 text-slate-500 text-sm">Đang tải...</div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">Không có đơn hàng</div>
+          <div className="text-center py-12 text-slate-500 text-sm">Không có đơn hàng</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[860px]">
-              <thead className="bg-slate-50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-navy-900">Số đơn</th>
-                  <th className="text-left px-4 py-3 font-semibold text-navy-900">Khách hàng</th>
-                  <th className="text-left px-4 py-3 font-semibold text-navy-900">Ngày</th>
-                  <th className="text-right px-4 py-3 font-semibold text-navy-900">Tổng tiền</th>
-                  <th className="text-left px-4 py-3 font-semibold text-navy-900">Trạng thái</th>
-                  <th className="px-4 py-3"></th>
+            <table className="w-full text-sm min-w-[760px]">
+              <thead>
+                <tr className="text-xs text-slate-500 border-b bg-slate-50/50">
+                  <th className="text-left px-4 py-2.5 font-medium">Số đơn</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Ngày</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Khách hàng</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Tổng tiền</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((o) => (
-                  <tr key={o.doc_entry} className="border-b hover:bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-brand-blue">
-                      <Link to={`/orders/${o.doc_entry}`}>{o.doc_num}</Link>
-                    </td>
+                  <tr key={o.doc_entry} className="border-b last:border-0 hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <div className="font-medium">{o.card_name}</div>
-                      <div className="text-xs text-slate-500">{o.card_code}</div>
+                      <Link to={`/orders/${o.doc_entry}`} className="text-brand-blue font-semibold hover:underline">
+                        #{o.doc_num}
+                      </Link>
+                      <div className="text-xs text-slate-400">ID nội bộ: {o.doc_entry}</div>
                     </td>
-                    <td className="px-4 py-3">{o.doc_date}</td>
+                    <td className="px-4 py-3 text-slate-600">{o.doc_date}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-navy-900">{o.card_name}</div>
+                      <div className="text-xs text-slate-400">{o.card_code}</div>
+                    </td>
                     <td className="px-4 py-3 text-right font-semibold">
                       {(o.doc_total || 0).toLocaleString('vi-VN')}
                     </td>
                     <td className="px-4 py-3">{statusBadge(o.status)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        to={`/orders/${o.doc_entry}`}
-                        className="text-brand-blue hover:underline text-sm"
-                      >
-                        Chi tiết →
-                      </Link>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -167,23 +154,20 @@ export default function Orders() {
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center justify-end gap-2 mt-3 text-sm">
+          <span className="text-slate-500">Trang {page} / {totalPages}</span>
           <button
             disabled={page <= 1}
-            onClick={() => updateFilter('page', String(page - 1))}
-            className="btn-secondary !min-h-[36px] !px-3 disabled:opacity-50"
+            onClick={() => { const n = new URLSearchParams(searchParams); n.set('page', String(page - 1)); setSearchParams(n); }}
+            className="px-3 py-1.5 border rounded text-sm disabled:opacity-40 hover:bg-slate-50"
           >
             ←
           </button>
-          <span className="text-sm text-slate-600">
-            Trang {page} / {totalPages} ({total} đơn)
-          </span>
           <button
             disabled={page >= totalPages}
-            onClick={() => updateFilter('page', String(page + 1))}
-            className="btn-secondary !min-h-[36px] !px-3 disabled:opacity-50"
+            onClick={() => { const n = new URLSearchParams(searchParams); n.set('page', String(page + 1)); setSearchParams(n); }}
+            className="px-3 py-1.5 border rounded text-sm disabled:opacity-40 hover:bg-slate-50"
           >
             →
           </button>

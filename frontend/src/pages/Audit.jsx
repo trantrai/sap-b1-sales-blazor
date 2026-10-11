@@ -6,37 +6,47 @@ export default function Audit() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const pageSize = 20;
 
-  useEffect(() => {
-    api.get('/audit', { params: { page, page_size: 20 } })
+  const load = () => {
+    setLoading(true);
+    api.get('/audit', { params: { page, page_size: pageSize } })
       .then(({ data }) => setLogs(data.items || data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page]);
+  };
+
+  useEffect(() => { load(); }, [page]);
 
   return (
-    <Layout title="Nhật ký Audit">
-      <div className="card !p-0 overflow-hidden">
+    <Layout title="Audit người dùng">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500">Đang tải…</div>
+          <div className="text-center py-12 text-sm text-slate-500">Đang tải...</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead className="bg-slate-50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3">Thời gian</th>
-                  <th className="text-left px-4 py-3">Người dùng</th>
-                  <th className="text-left px-4 py-3">Hành động</th>
-                  <th className="text-left px-4 py-3">Đối tượng</th>
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="text-xs text-slate-500 border-b bg-slate-50/50">
+                  <th className="text-left px-4 py-2.5 font-medium">Thời gian</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Người dùng</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Hành động</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Đối tượng</th>
+                  <th className="text-left px-4 py-2.5 font-medium">Mã</th>
+                  <th className="text-left px-4 py-2.5 font-medium">IP</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log, i) => (
-                  <tr key={i} className="border-b hover:bg-slate-50">
-                    <td className="px-4 py-3 text-slate-500">{log.timestamp}</td>
-                    <td className="px-4 py-3 font-medium">{log.username}</td>
-                    <td className="px-4 py-3">{log.action}</td>
-                    <td className="px-4 py-3">{log.entity_type}: {log.entity_id}</td>
+                  <tr key={i} className="border-b last:border-0 hover:bg-slate-50">
+                    <td className="px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                      {log.timestamp || log.created_at}
+                    </td>
+                    <td className="px-4 py-2.5 font-medium">{log.username}</td>
+                    <td className="px-4 py-2.5">{log.action}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{log.entity_type}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{log.entity_id || '—'}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-400">{log.ip || '::1'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -44,15 +54,19 @@ export default function Audit() {
           </div>
         )}
       </div>
-      <div className="flex justify-center gap-2 mt-4">
+      <div className="flex items-center justify-end gap-2 mt-3">
         <button
           disabled={page <= 1}
           onClick={() => setPage(page - 1)}
-          className="btn-secondary !min-h-[36px] disabled:opacity-50"
+          className="px-3 py-1.5 text-sm border rounded disabled:opacity-40 hover:bg-white bg-white"
         >
           ← Trước
         </button>
-        <button onClick={() => setPage(page + 1)} className="btn-secondary !min-h-[36px]">
+        <span className="text-sm text-slate-500">Trang {page}</span>
+        <button
+          onClick={() => setPage(page + 1)}
+          className="px-3 py-1.5 text-sm border rounded hover:bg-white bg-white"
+        >
           Sau →
         </button>
       </div>

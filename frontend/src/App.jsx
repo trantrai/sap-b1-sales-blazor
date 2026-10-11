@@ -6,6 +6,7 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import OrderCreate from './pages/OrderCreate';
 import Sync from './pages/Sync';
+import Monitor from './pages/Monitor';
 import Audit from './pages/Audit';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/orders/new" element={<ProtectedRoute><OrderCreate /></ProtectedRoute>} />
           <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
           <Route path="/sync" element={<ProtectedRoute><Sync /></ProtectedRoute>} />
+          <Route path="/monitor" element={<ProtectedRoute><Monitor /></ProtectedRoute>} />
           <Route path="/audit" element={<ProtectedRoute><Audit /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
