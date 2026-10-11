@@ -78,7 +78,7 @@ JSON dùng snake_case. Auth: JWT Bearer (claims `sub`, `role`, `b1_db`), lưu tr
 
 | # | Thành phần / hành động | Xử lý |
 |---|---|---|
-| 3.1.1 | Gõ ô tìm KH (autocomplete) | `OnCustomerSearch` — debounce, gọi API tìm KH |
+| 3.1.1 | Gõ ô tìm KH (autocomplete) | `OnCustomerSearch` → `MasterDataCache.SearchCustomersAsync`: **chỉ tìm khi nhập ≥ 2 ký tự**, lọc trên bộ nhớ (tối đa 20 gợi ý), không gọi API mỗi lần gõ |
 | 3.1.2 | Chọn một KH | `OnCustomerSelected` — điền `card_code`/`card_name`; tự động tải địa chỉ giao/nhận hàng và liên hệ |
 | 3.1.3 | Bấm "X" (`ClearCustomer`) | Xóa KH đã chọn |
 | 3.1.4 | Nhập "Ngày giao hàng" | bind `docDueDate` |
@@ -89,7 +89,7 @@ JSON dùng snake_case. Auth: JWT Bearer (claims `sub`, `role`, `b1_db`), lưu tr
 
 | # | Thành phần / hành động | Xử lý |
 |---|---|---|
-| 3.2.1 | Gõ ô "Hàng hoá" (autocomplete) | gọi API tìm hàng |
+| 3.2.1 | Gõ ô "Hàng hoá" (autocomplete) | `ItemSearch.OnSearch` → `MasterDataCache.SearchItemsAsync`: **chỉ tìm khi nhập ≥ 2 ký tự**, lọc trên bộ nhớ |
 | 3.2.2 | Chọn hàng (`OnItemPicked`) | Điền `item_code`, `item_name`, `price` (giá mặc định), `tax_code` |
 | 3.2.3 | Sửa "SL" | bind `ln.Quantity` |
 | 3.2.4 | Sửa "Đơn giá" | bind `ln.Price` |
@@ -122,15 +122,17 @@ Breakdown hiển thị theo thời gian thực:
 
 | Method | Endpoint | Ghi chú |
 |---|---|---|
-| GET | `/api/customers/search?q=` | autocomplete KH |
-| GET | `/api/customers/{card_code}/addresses` | địa chỉ giao/nhận hàng |
-| GET | `/api/customers/{card_code}/contacts` | người liên hệ |
-| GET | `/api/items/search?q=` | autocomplete hàng hóa |
-| GET | `/api/warehouses` | danh sách kho |
-| GET | `/api/tax-codes` | danh sách thuế suất |
-| GET | `/api/payment-terms` | điều khoản thanh toán |
-| GET | `/api/shipping-types` | hình thức vận chuyển |
-| GET | `/api/sales-persons` | nhân viên kinh doanh |
+| GET | `/api/masterdata/customers?q=` | autocomplete KH (search server) |
+| GET | `/api/masterdata/customers/all` | toàn bộ KH — nạp 1 lần cho `MasterDataCache` (v2.1) |
+| GET | `/api/masterdata/customers/{cardCode}/addresses` | địa chỉ giao/nhận hàng |
+| GET | `/api/masterdata/customers/{cardCode}/contacts` | người liên hệ |
+| GET | `/api/masterdata/items?q=` | autocomplete hàng hóa (search server) |
+| GET | `/api/masterdata/items/all` | toàn bộ hàng hóa — nạp 1 lần cho `MasterDataCache` (v2.1) |
+| GET | `/api/masterdata/warehouses` | danh sách kho |
+| GET | `/api/masterdata/tax-codes` | danh sách thuế suất |
+| GET | `/api/masterdata/payment-terms` | điều khoản thanh toán |
+| GET | `/api/masterdata/shipping-types` | hình thức vận chuyển |
+| GET | `/api/masterdata/sales-persons` | nhân viên kinh doanh |
 | POST | `/api/orders` | tạo đơn. Body gồm `external_id`, `card_code`, `discount_percent` (CK đơn hàng), `lines[]` (mỗi dòng có `discount_percent`) |
 
 **Validation phía server** (`OrdersController.ValidateDiscounts`):

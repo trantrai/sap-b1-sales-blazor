@@ -160,8 +160,10 @@ Danh sách database cho màn Login.
 
 | Endpoint | Mô tả |
 |---|---|
-| GET `/api/masterdata/customers?q=` | Autocomplete KH |
-| GET `/api/masterdata/items?q=` | Autocomplete hàng hóa |
+| GET `/api/masterdata/customers?q=` | Autocomplete KH (search server, top 20) |
+| GET `/api/masterdata/customers/all` | Toàn bộ KH (tối đa 5000) — cho cache client (v2.1) |
+| GET `/api/masterdata/items?q=` | Autocomplete hàng hóa (search server, top 20) |
+| GET `/api/masterdata/items/all` | Toàn bộ hàng hóa (tối đa 5000) — cho cache client (v2.1) |
 | GET `/api/masterdata/warehouses` | Danh sách kho |
 | GET `/api/masterdata/tax-codes` | Thuế suất |
 | GET `/api/masterdata/payment-terms` | Điều khoản thanh toán |
@@ -171,6 +173,27 @@ Danh sách database cho màn Login.
 | GET `/api/masterdata/customers/{cardCode}/contacts` | Liên hệ KH |
 
 **Quyền:** viewer+.
+
+### GET /api/masterdata/customers/all — Toàn bộ khách hàng (v2.1)
+
+Phục vụ `MasterDataCache` phía client: tải 1 lần, autocomplete lọc trên bộ nhớ.
+
+Response `200`:
+```json
+[
+  { "card_code": "C20000", "card_name": "Công ty TNHH An Phát", "phone": "0901111111",
+    "sales_person_code": 1, "price_list_num": 1 }
+]
+```
+
+### GET /api/masterdata/items/all — Toàn bộ hàng hóa (v2.1)
+
+Response `200`:
+```json
+[
+  { "item_code": "A00001", "item_name": "Bàn làm việc gỗ", "sales_unit": "Cái", "price": 1500000 }
+]
+```
 
 ---
 

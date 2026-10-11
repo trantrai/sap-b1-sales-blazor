@@ -103,6 +103,8 @@ Controllers giữ nguyên DI `IB1Client`, không cần sửa khi thêm database 
 | AD-05 | Không xóa vật lý đơn trong B1 | B1 cấm xóa Sales Order đã lưu (lỗi -5006); chỉ cho Cancel/Close | DELETE /Orders(n) |
 | AD-06 | Đa database qua `B1ClientPool` + proxy (v2.0) | Một user chọn 1 DB lúc login; các DB dùng chung SL URL + user kỹ thuật; controllers không đổi | Client singleton + đổi DB toàn cục (user A đổi DB ảnh hưởng user B) |
 | AD-07 | Ngưỡng CK cấu hình trong Settings (v2.0) | Admin tự điều chỉnh chính sách CK, hiệu lực ngay không cần deploy | Hardcode ngưỡng theo role trong code |
+| AD-08 | Cache master data phía client (v2.1) | Autocomplete KH/hàng hoá tải 1 lần, lọc trên bộ nhớ — giảm tải server, phản hồi tức thì, không gọi API mỗi lần gõ | Gọi API search mỗi keystroke (tốn request, chậm khi mạng yếu) |
+| AD-09 | Icon Fluent UI cho nav + nút (v2.1) | Trực quan, nhất quán design system; dùng package `Microsoft.FluentUI.AspNetCore.Components.Icons` riêng của v5 | Emoji/ký tự text (☰, +) — thiếu chuyên nghiệp, không đồng nhất |
 
 ---
 
@@ -145,8 +147,10 @@ sap-b1-sales-blazor/
 | PUT | `/api/orders/{docEntry}` | sales+ | Sửa đơn (ghi chú…; validate CK) |
 | POST | `/api/orders/{docEntry}/cancel` | manager+ | Hủy đơn → `Orders(n)/Cancel` |
 | POST | `/api/orders/{docEntry}/close` | manager+ | Đóng dòng → `Orders(n)/Close` |
-| GET | `/api/masterdata/customers?q=` | viewer+ | Autocomplete KH |
-| GET | `/api/masterdata/items?q=` | viewer+ | Autocomplete hàng hóa |
+| GET | `/api/masterdata/customers?q=` | viewer+ | Autocomplete KH (search server, top 20) |
+| GET | `/api/masterdata/customers/all` | viewer+ | Toàn bộ KH (tối đa 5000, cho cache client) |
+| GET | `/api/masterdata/items?q=` | viewer+ | Autocomplete hàng hóa (search server, top 20) |
+| GET | `/api/masterdata/items/all` | viewer+ | Toàn bộ hàng hóa (tối đa 5000, cho cache client) |
 | GET | `/api/masterdata/warehouses` | viewer+ | Danh sách kho |
 | GET | `/api/masterdata/tax-codes` | viewer+ | Thuế suất |
 | GET | `/api/masterdata/payment-terms` | viewer+ | Điều khoản thanh toán |
@@ -256,6 +260,24 @@ doc_total        = tổng_sau_CK_dòng − CK_đơn_hàng
 - Các DB dùng chung Service Layer URL + tài khoản kỹ thuật (mô hình B1 chuẩn:
   một server, nhiều company, cùng user kỹ thuật).
 
+### 3.9. Cache master data cho autocomplete (v2.1)
+
+**Server** (`MasterDataService`):
+- `ListAllCustomersAsync()` / `ListAllItemsAsync()`: trả toàn bộ danh sách (tối đa 5000 bản ghi)
+  từ `MdStore` (DB local đã đồng bộ); cache server theo key `cust:__all__` / `item:__all__`.
+- Nếu chưa đồng bộ (DB local trống): fallback gọi `SearchCustomersAsync("")` / `SearchItemsAsync("")` qua B1.
+
+**Client** (`Services/MasterDataCache.cs`, scoped):
+- Lazy-load: lần đầu autocomplete được dùng (hoặc preload nền sau login trong `MainLayout`),
+  gọi `GET /api/masterdata/{customers,items}/all` 1 lần duy nhất, giữ trong bộ nhớ.
+- `SearchCustomersAsync(q)` / `SearchItemsAsync(q)`:
+  - Trả về rỗng ngay nếu `q` có ít hơn **2 ký tự** — không gọi API.
+  - Lọc trên bộ nhớ theo mã/tên (case-insensitive, `Contains`), tối đa 20 kết quả.
+- `Invalidate()`: xoá cache — được gọi tự động khi `SyncPage` đồng bộ xong để lần tìm sau tải lại dữ liệu mới.
+- `PreloadAsync()`: tải trước cả hai danh sách (gọi fire-and-forget sau login).
+
+Luồng: Login → `MainLayout` preload nền → user gõ ≥2 ký tự → lọc tức thì trên RAM (0 API call).
+
 ### 3.7. Bảo mật
 - **JWT HS256** cho session web; mật khẩu hash **PBKDF2 200k iterations**.
 - **RBAC** — ma trận 10 quyền × 4 vai trò:
@@ -329,6 +351,20 @@ SalesWeb.Client/
 - Layout: header cố định (logo + tên công ty + user menu), nav trái dùng `FluentNav`/`FluentNavItem` (v5), vùng nội dung chính responsive.
 - Không dùng emoji thay icon — dùng icon Fluent có sẵn trong package v5.
 
+### 4.3. Icon trực quan (v2.1)
+
+Dùng package riêng **`Microsoft.FluentUI.AspNetCore.Components.Icons`** (v5 tách icon thành package độc lập).
+Trong `_Imports.razor`: `@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons`.
+
+| Vị trí | Cách dùng | Icon |
+|---|---|---|
+| `FluentNavItem` menu (7 mục) | `IconRest="@(new Icons.Regular.Size20.DocumentBulletList())"` | DocumentBulletList, DocumentAdd, ArrowSync, Pulse, People, Settings, SignOut |
+| Nút hamburger mobile | `IconStart` trên `FluentButton` | Navigation |
+| Các nút thao tác | `IconStart="@(new Icons.Regular.Size20.X())"` | Add, Checkmark, Edit, Dismiss, Save, Filter, PlugConnected, PersonAdd |
+
+> Lưu ý v5: `FluentNavItem` dùng **`IconRest`** (không phải `Icon`); `FluentButton` dùng `IconStart`/`IconEnd`.
+> Kích thước chuẩn `Size20` cho nav và nút.
+
 ### 4.3. Thiết kế màn hình (khớp implementation v2.0)
 
 **a) Đăng nhập (`Login.razor` — `/login`)**
@@ -340,7 +376,9 @@ SalesWeb.Client/
 - Lọc theo trạng thái + mã KH; phân trang Prev/Next; empty text tiếng Việt.
 
 **c) Tạo đơn hàng (`OrderCreate.razor` — `/orders/new`)**
-- Autocomplete KH (kèm địa chỉ giao/nhận, liên hệ) và hàng hóa (debounce).
+- Autocomplete KH (`FluentAutocomplete`) và hàng hóa (`ItemSearch.razor`): dùng **`MasterDataCache`**
+  (scoped) — tải toàn bộ danh sách 1 lần, **chỉ tìm khi nhập ≥ 2 ký tự**, lọc trên bộ nhớ
+  (tối đa 20 gợi ý), không gọi API mỗi lần gõ. Cache tự xoá sau khi đồng bộ master data.
 - Cột **CK %** từng dòng + ô **Chiết khấu đơn hàng (%)**; breakdown realtime:
   Tổng sau CK dòng → CK đơn hàng → TỔNG CỘNG.
 - Nút "Tạo đơn hàng" disabled khi form chưa hợp lệ, kèm gợi ý lý do
@@ -378,6 +416,7 @@ SalesWeb.Client/
 
 ### 4.5. Gọi API & trạng thái
 - `ApiClient` (typed `HttpClient`): tự gắn JWT, tự refresh khi 401 một lần, parse `code` lỗi chuẩn.
+- `MasterDataCache` (scoped, v2.1): cache KH/hàng hoá phía client cho autocomplete (xem 3.9).
 - Auth: `CascadingAuthenticationState` + `AuthorizeView` theo policy; guard trong `OnInitializedAsync` **phải** `await` trạng thái auth trước khi redirect (tránh redirect oan khi load trực tiếp URL).
 - Không dùng state management phức tạp (Fluxor) — component state + cascading value đủ cho quy mô này.
 
