@@ -20,7 +20,7 @@
                       OptionText="@(v => statusOptions[v])" OptionValue="@(v => v)"
                       @bind-SelectedOption="status" Style="min-width:150px" aria-label="Lọc theo trạng thái đơn" />
     </div>
-    <FluentTextInput @bind-Value="cardCode" Placeholder="Mã KH (VD: C20000)"
+    <FluentTextInput @bind-Value="cardCode" @bind-Value:event="oninput" Placeholder="Mã KH (VD: C20000)"
                      Style="min-width:150px" @onkeydown="OnFilterKey" />
     <FluentButton Appearance="ButtonAppearance.Primary" OnClick="ApplyFilter"
                   IconStart="@(new Icons.Regular.Size20.Filter())">Lọc</FluentButton>
@@ -161,7 +161,7 @@
         finally { loading = false; }
     }
 
-    private async Task ApplyFilter() { skip = 0; SyncUrl(); await Load(); }
+    private async Task ApplyFilter() { skip = 0; await Load(); }
 
     private bool exporting;
 
@@ -191,6 +191,6 @@
         if (e.Key == "Enter") await ApplyFilter();
     }
 
-    private void PrevPage() { skip = Math.Max(0, skip - top); SyncUrl(); }
-    private void NextPage() { skip += top; SyncUrl(); }
+    private async Task PrevPage() { skip = Math.Max(0, skip - top); await Load(); }
+    private async Task NextPage() { skip += top; await Load(); }
 }
