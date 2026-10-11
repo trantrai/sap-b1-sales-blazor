@@ -1,28 +1,52 @@
 /* ============================================================
-   FLUENT THEME OVERRIDES — navy #1E3A5F / gold #F2B705 / coral #E0522F
+   NEW DESIGN SYSTEM — từ file thiết kế "Sales Order SAP B1 —
+   Thiết kế lại giao diện" (Stitch, 2026-10-11)
+   Font: Plus Jakarta Sans · Primary: indigo #4f46e5
+   Background: #f6f7fb · Card: trắng, bo 16px, shadow nhẹ
    ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --accent-fill-rest: #1E3A5F;
-  --accent-fill-hover: #2a4d78;
-  --accent-fill-active: #16294a;
-  --accent-fill-focus: #1E3A5F;
-  --accent-foreground-rest: #1E3A5F;
-  --accent-foreground-hover: #2a4d78;
-  --accent-foreground-active: #16294a;
-  --accent-foreground-focus: #1E3A5F;
-  --error: #E0522F;
-  --body-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --accent-fill-rest: #4f46e5;
+  --accent-fill-hover: #4338ca;
+  --accent-fill-active: #3730a3;
+  --accent-fill-focus: #4f46e5;
+  --accent-foreground-rest: #4f46e5;
+  --accent-foreground-hover: #4338ca;
+  --accent-foreground-active: #3730a3;
+  --accent-foreground-focus: #4f46e5;
+  --error: #dc2626;
+  --body-font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  /* Design tokens mới */
+  --ds-bg: #f6f7fb;
+  --ds-surface: #ffffff;
+  --ds-border: #eceef5;
+  --ds-border-input: #dfe3ec;
+  --ds-text: #1b2430;
+  --ds-text-2: #475569;
+  --ds-text-3: #64748b;
+  --ds-primary: #4f46e5;
+  --ds-primary-dark: #4338ca;
+  --ds-primary-light: #eef2ff;
+  --ds-radius: 16px;
+  --ds-radius-sm: 10px;
+  --ds-radius-xs: 12px;
+  --ds-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.04);
+  --ds-success-bg: #dcfce7; --ds-success-tx: #166534;
+  --ds-error-bg: #fee2e2; --ds-error-tx: #b91c1c;
+  --ds-info-bg: #e0e7ff; --ds-info-tx: #3730a3;
 }
 
 html, body {
-  font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   margin: 0;
-  background: #f3f2f1;
-  color: #201f1e;
+  background: #f6f7fb;
+  color: #1b2430;
   -webkit-font-smoothing: antialiased;
 }
-body a { color: #1E3A5F; }
-body ::selection { background: #e8edf4; }
+body a { color: #4f46e5; }
+body ::selection { background: #e0e7ff; }
 
 /* Fluent dialog/content font + spacing tweaks */
 fluent-dialog::part(control) { border-top: 4px solid #F2B705; }
@@ -45,42 +69,41 @@ fluent-data-grid .column-header { background: #faf9f8; }
    ============================================================ */
 
 :root {
-  /* ---------- Brand palette — theo logo Farmers Market ----------
-     Navy #1E3A5F: nút chính, link, focus, menu active
-     Gold #F2B705: điểm nhấn (viền topbar, login, tổng cộng, badge)
-     Coral #E0522F: nút nguy hiểm, lỗi                         */
-  --fm-yellow:        #1e3a5f;   /* Accent chính (navy) — CTA, highlight */
-  --fm-yellow-hover:  #16294a;
-  --fm-yellow-soft:   #e8edf4;   /* chip Open, hover row */
-  --fm-yellow-faint:  #f1f4f9;
-  --fm-gold:          #f2b705;   /* Điểm nhấn vàng gold */
-  --fm-gold-soft:     #fdf3d7;
-  --fm-navy:          #201f1e;   /* Chữ chính */
-  --fm-navy-deep:     #11100f;   /* Tiêu đề lớn */
-  --fm-navy-soft:     rgba(30, 58, 95, .08);
-  --fm-red:           #e0522f;   /* Lỗi, nguy hiểm (đỏ san hô) */
-  --fm-red-soft:      #fdeee6;
-  --fm-green:         #107c10;   /* Thành công */
-  --fm-green-soft:    #dff6dd;
-  --fm-cream:         #f3f2f1;   /* Nền trang chính */
+  /* ---------- Design mới (Stitch 2026-10-11) ----------
+     Primary indigo #4f46e5 · Background #f6f7fb
+     Card trắng bo 16px, shadow nhẹ · Font Plus Jakarta Sans */
+  --fm-yellow:        #4f46e5;   /* Accent chính (indigo) — CTA, highlight */
+  --fm-yellow-hover:  #4338ca;
+  --fm-yellow-soft:   #eef2ff;   /* chip Open, hover row */
+  --fm-yellow-faint:  #f6f7fb;
+  --fm-gold:          #4f46e5;   /* Điểm nhấn -> indigo */
+  --fm-gold-soft:     #eef2ff;
+  --fm-navy:          #1b2430;   /* Chữ chính */
+  --fm-navy-deep:     #0f172a;   /* Tiêu đề lớn */
+  --fm-navy-soft:     rgba(79, 70, 229, .08);
+  --fm-red:           #dc2626;   /* Lỗi, nguy hiểm */
+  --fm-red-soft:      #fee2e2;
+  --fm-green:         #166534;   /* Thành công */
+  --fm-green-soft:    #dcfce7;
+  --fm-cream:         #f6f7fb;   /* Nền trang chính */
   --fm-surface:       #ffffff;   /* Card, input, bảng */
-  --fm-line:          #edebe9;   /* Đường kẻ, border */
-  --fm-text:          #201f1e;
-  --fm-text-2:        #605e5c;   /* Metadata, phụ đề */
-  --fm-text-3:        #a19f9d;
+  --fm-line:          #eceef5;   /* Đường kẻ, border */
+  --fm-text:          #1b2430;
+  --fm-text-2:        #475569;   /* Metadata, phụ đề */
+  --fm-text-3:        #64748b;
 
   /* ---------- Typography ---------- */
-  --fm-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --fm-font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --fm-fs-xs: 11px;  --fm-fs-sm: 12.5px; --fm-fs-md: 14px;
   --fm-fs-lg: 16px;  --fm-fs-xl: 20px;   --fm-fs-2xl: 26px;
 
-  /* ---------- Shape & depth (Fluent) ---------- */
-  --fm-r-sm: 2px;  --fm-r-md: 4px;  --fm-r-lg: 4px;  --fm-r-pill: 999px;
-  --fm-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.13), 0 .3px .9px 0 rgba(0,0,0,.11);
-  --fm-shadow-pop: 0 6.4px 14.4px 0 rgba(0,0,0,.18), 0 1.2px 3.6px 0 rgba(0,0,0,.11);
+  /* ---------- Shape & depth (design mới: bo tròn lớn, shadow nhẹ) ---------- */
+  --fm-r-sm: 10px;  --fm-r-md: 12px;  --fm-r-lg: 16px;  --fm-r-pill: 999px;
+  --fm-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.04);
+  --fm-shadow-pop: 0 8px 24px rgba(15,23,42,.08), 0 2px 6px rgba(15,23,42,.06);
 
   /* ---------- Layout ---------- */
-  --fm-sidebar-w: 220px;
+  --fm-sidebar-w: 232px;
   --fm-topbar-h: 56px;
   --fm-accent-bar: 1px solid var(--fm-line);
 }
