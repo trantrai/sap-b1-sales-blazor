@@ -24,18 +24,18 @@ function SidebarContent({ onNavigate }) {
 
   return (
     <>
-      <div className="p-4 border-b border-slate-200">
+      <div className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-navy-900 rounded-lg flex items-center justify-center text-brand-yellow font-bold text-sm">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: 'var(--yellow)', color: 'var(--navy-900)' }}>
             SO
           </div>
           <div>
-            <div className="font-bold text-navy-900 text-sm">SALE ORDER</div>
-            <div className="text-xs text-slate-500">SAP B1 - HANA</div>
+            <div className="font-bold text-sm" style={{ color: '#fff' }}>SALE ORDER</div>
+            <div className="text-xs" style={{ color: '#d6e2f5' }}>SAP B1 - HANA</div>
           </div>
         </div>
       </div>
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
         {menuItems.map((item) => (
           <NavLink
             key={item.to}
@@ -43,33 +43,40 @@ function SidebarContent({ onNavigate }) {
             end={item.to === '/'}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
+              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors relative ${
                 isActive
-                  ? 'bg-white text-navy-900 font-semibold shadow-sm border-l-4 border-brand-yellow'
-                  : 'text-slate-600 hover:bg-white hover:text-navy-900'
+                  ? 'font-bold'
+                  : ''
               }`
             }
+            style={({ isActive }) => isActive ? {
+              background: 'var(--yellow)',
+              color: 'var(--navy-900)',
+            } : {
+              color: '#d6e2f5',
+            }}
           >
             <span className="text-base">{item.icon}</span>
             <span className="flex-1">{item.label}</span>
             {item.badge && (
-              <span className="bg-brand-blue text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center font-bold" style={{ background: 'var(--orange)' }}>
                 {item.badge}
               </span>
             )}
           </NavLink>
         ))}
       </nav>
-      <div className="p-4 border-t border-slate-200">
-        <div className="text-sm mb-1 font-medium text-slate-700">{user?.username === 'admin' ? 'Administrator' : user?.username}</div>
+      <div className="p-4" style={{ color: '#d6e2f5' }}>
+        <div className="text-sm mb-1 font-medium" style={{ color: '#fff' }}>{user?.username === 'admin' ? 'Administrator' : user?.username}</div>
         <div className="mb-3">
-          <span className="bg-brand-yellow/30 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--yellow)', color: 'var(--navy-900)' }}>
             {user?.role}
           </span>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm text-slate-600 hover:text-navy-900"
+          className="flex items-center gap-2 text-sm hover:opacity-80"
+          style={{ color: '#d6e2f5' }}
         >
           <span>🚪</span> Đăng xuất
         </button>
@@ -86,7 +93,7 @@ export default function Layout({ children, title }) {
   return (
     <div className={`min-h-screen ${dark ? 'dark' : ''}`}>
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 bg-[#f5f5f5] flex-col z-40 border-r border-slate-200">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col z-40" style={{ background: 'var(--navy-900)' }}>
         <SidebarContent />
       </aside>
 
@@ -97,7 +104,7 @@ export default function Layout({ children, title }) {
             className="fixed inset-0 bg-black/50 z-40 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-64 bg-[#f5f5f5] flex flex-col z-50 md:hidden border-r border-slate-200">
+          <aside className="fixed inset-y-0 left-0 w-64 flex flex-col z-50 md:hidden" style={{ background: 'var(--navy-900)' }}>
             <SidebarContent onNavigate={() => setSidebarOpen(false)} />
           </aside>
         </>
