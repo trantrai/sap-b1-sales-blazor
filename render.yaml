@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: sap-b1-sales-blazor
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: B1_MOCK
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+    disk:
+      name: sqlite-data
+      mountPath: /app/data
+      sizeGB: 1
