@@ -34,11 +34,39 @@ docker compose up -d --build   # http://localhost:8080
 ## Tính năng
 
 - CRUD đơn hàng bán (idempotent theo `external_id`, sửa có ETag, hủy/đóng dòng)
+- **Chiết khấu dòng và chiết khấu đơn hàng** (ánh xạ `RDR1.DiscPrcnt` / `ORDR.DiscPrcnt`), breakdown tổng tiền chi tiết
+- **Ngưỡng chiết khấu theo vai trò**, admin tự cấu hình trong màn Cài đặt (sales/manager, admin không giới hạn)
 - Tra cứu KH / hàng hóa / kho / thuế suất, autocomplete
 - Đồng bộ master data vào SQLite local (`POST /api/sync`)
 - Audit mọi thao tác Service Layer + retry thông minh (`/audit`)
 - Auth JWT + RBAC 4 cấp: viewer < sales < manager < admin
 - Cài đặt kết nối B1 runtime (mật khẩu mã hóa AES-GCM), quản lý user
+
+## Màn hình
+
+### Đăng nhập
+![Đăng nhập](docs/screenshots/login.png)
+
+### Danh sách đơn hàng
+![Danh sách đơn hàng](docs/screenshots/danh-sach-don.png)
+
+### Tạo đơn hàng (chiết khấu dòng + chiết khấu đơn hàng)
+![Tạo đơn hàng](docs/screenshots/tao-don.png)
+
+### Chi tiết đơn hàng (chiết khấu + breakdown tổng tiền)
+![Chi tiết đơn hàng](docs/screenshots/chi-tiet-don.png)
+
+### Đồng bộ dữ liệu
+![Đồng bộ dữ liệu](docs/screenshots/dong-bo-du-lieu.png)
+
+### Giám sát tích hợp
+![Giám sát tích hợp](docs/screenshots/giam-sat-tich-hop.png)
+
+### Người dùng & phân quyền
+![Người dùng & phân quyền](docs/screenshots/nguoi-dung.png)
+
+### Cài đặt kết nối (ngưỡng chiết khấu theo vai trò)
+![Cài đặt kết nối](docs/screenshots/cai-dat.png)
 
 ## Cấu trúc
 
