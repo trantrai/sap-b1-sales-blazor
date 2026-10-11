@@ -417,11 +417,31 @@ fluent-data-grid .column-header { background: #faf9f8; }
   vertical-align: middle;
 }
 
+/* Nút hamburger — chỉ hiện trên mobile (rule gốc đặt TRƯỚC media query) */
+.fm-nav-toggle { display: none; font-size: 18px; line-height: 1; }
+
 /* ============================================================
    14. RESPONSIVE
    ============================================================ */
 @media (max-width: 900px) {
-  .fm-sidebar { width: 64px; padding: 12px 6px; }
-  .fm-logo__name, .fm-menu-item span { display: none; }
+  /* Sidebar thành drawer trượt từ trái, mở bằng nút hamburger trên topbar */
+  .fm-sidebar {
+    position: fixed; z-index: 60; top: 0; left: 0; bottom: 0;
+    width: 264px; transform: translateX(-105%);
+    transition: transform .2s ease-out;
+    box-shadow: none;
+  }
+  .fm-sidebar--open { transform: translateX(0); box-shadow: 0 0 28px rgba(0,0,0,.22); }
+  .fm-backdrop {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(17, 16, 15, .38);
+  }
+  .fm-nav-toggle { display: inline-flex; }
+  .fm-topbar { padding: 0 12px; }
+  .fm-page { padding: 14px; }
   .fm-form-grid { grid-template-columns: 1fr; }
+  /* Tổng tiền: xếp chồng, full width trên mobile */
+  .fm-submit-bar { flex-direction: column; align-items: stretch !important; }
+  .fm-submit-bar .fm-totals { width: 100%; margin-left: 0; }
+  .fm-table-wrap { overflow-x: auto; }
 }

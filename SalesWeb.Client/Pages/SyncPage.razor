@@ -32,7 +32,7 @@
         }
     </div>
     <div class="fm-table-wrap">
-        <FluentDataGrid Items="@rows.AsQueryable()" TGridItem="SyncEntityStatus" Style="width:100%">
+        <FluentDataGrid EmptyContent="@emptySync" Items="@rows.AsQueryable()" TGridItem="SyncEntityStatus" Style="width:100%">
             <TemplateColumn Title="Dữ liệu">
                 <span style="font-weight:600">@context.Label</span>
             </TemplateColumn>
@@ -93,6 +93,7 @@
 </div>
 
 @code {
+    private RenderFragment emptySync = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Chưa có dữ liệu đồng bộ.</div>;
     private static readonly System.Globalization.CultureInfo ViVn =
         System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
 

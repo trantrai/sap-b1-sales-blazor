@@ -95,7 +95,7 @@ else if (order is not null)
     </div>
 
     <div class="fm-table-wrap">
-        <FluentDataGrid Items="@order.Lines.AsQueryable()" TGridItem="OrderLineOut" Style="width:100%">
+        <FluentDataGrid EmptyContent="@emptyLines" Items="@order.Lines.AsQueryable()" TGridItem="OrderLineOut" Style="width:100%">
             <TemplateColumn Title="#"><span>@(context.LineNum + 1)</span></TemplateColumn>
             <TemplateColumn Title="Hàng hoá">
                 <div style="font-weight:600">@(string.IsNullOrEmpty(context.Description) ? context.ItemCode : context.Description)</div>
@@ -150,6 +150,7 @@ else if (order is not null)
 }
 
 @code {
+    private RenderFragment emptyLines = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Không có dòng hàng.</div>;
     [Parameter] public int DocEntry { get; set; }
 
     private OrderOut? order;

@@ -7,7 +7,7 @@
 
 <a class="fm-skip-link" href="#fm-main-content" @onclick="FocusMain" @onclick:preventDefault>Bỏ qua tới nội dung chính</a>
 <div class="fm-layout fm-app-root">
-    <aside class="fm-sidebar">
+    <aside class="fm-sidebar @(navOpen ? "fm-sidebar--open" : "")">
         <div class="fm-logo">
             <div class="fm-logo__badge">SO</div>
             <div class="fm-logo__name">
@@ -46,9 +46,19 @@
             </div>
         </div>
     </aside>
+    @if (navOpen)
+    {
+        <div class="fm-backdrop" @onclick="ToggleNav" aria-hidden="true"></div>
+    }
     <div class="fm-main">
         <div class="fm-topbar">
-            <div class="fm-topbar__title">@PageTitle</div>
+            <div style="display:flex; align-items:center; gap:10px; min-width:0">
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="ToggleNav"
+                              Title="Menu" aria-label="Mở menu điều hướng" class="fm-nav-toggle">
+                    ☰
+                </FluentButton>
+                <div class="fm-topbar__title">@PageTitle</div>
+            </div>
             <div class="fm-topbar__user">
                 @if (b1Mode == "live")
                 {
@@ -79,6 +89,7 @@
     private int failedCount;
     private string b1Mode = "mock";
     private System.Threading.Timer? timer;
+    private bool navOpen;
 
     private string PageTitle => GetRelativePath() switch
     {
@@ -112,9 +123,18 @@
         }
         await RefreshModeAsync();
         await RefreshFailedAsync();
+        Nav.LocationChanged += OnLocationChanged;
         timer = new System.Threading.Timer(async _ => await RefreshFailedAsync(),
             null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
     }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Đóng drawer khi chuyển trang trên mobile
+        if (navOpen) { navOpen = false; StateHasChanged(); }
+    }
+
+    private void ToggleNav() => navOpen = !navOpen;
 
     private async Task RefreshModeAsync()
     {
@@ -154,5 +174,9 @@
         await mainContentRef.FocusAsync();
     }
 
-    public void Dispose() => timer?.Dispose();
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        timer?.Dispose();
+    }
 }

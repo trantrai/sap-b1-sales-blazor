@@ -202,11 +202,17 @@
     </div>
 
     @* Tổng + submit *@
-    <div class="fm-card" style="display:flex; align-items:center; gap:16px">
-        <FluentButton Appearance="ButtonAppearance.Primary" Type="ButtonType.Submit"
-                      Disabled="@(!valid || busy)" Loading="busy" Style="padding:10px 28px">
-            @(busy ? "Đang tạo…" : "Tạo đơn hàng")
-        </FluentButton>
+    <div class="fm-card fm-submit-bar" style="display:flex; align-items:center; gap:16px">
+        <div>
+            <FluentButton Appearance="ButtonAppearance.Primary" Type="ButtonType.Submit"
+                          Disabled="@(!valid || busy)" Loading="busy" Style="padding:10px 28px">
+                @(busy ? "Đang tạo…" : "Tạo đơn hàng")
+            </FluentButton>
+            @if (!valid && !busy)
+            {
+                <div class="fm-hint" style="margin-top:6px; max-width:260px">@invalidReason</div>
+            }
+        </div>
         <div class="fm-totals">
             <div class="fm-totals__row">
                 <span>Tổng sau CK dòng</span>
@@ -279,6 +285,22 @@
         && headerDiscount >= 0 && headerDiscount <= 100
         && lines.All(l => !string.IsNullOrEmpty(l.ItemCode) && l.Quantity > 0
             && l.DiscountPercent >= 0 && l.DiscountPercent <= 100);
+
+    /// <summary>Lý do nút Tạo đơn bị khóa — gợi ý user hoàn thiện form.</summary>
+    private string invalidReason
+    {
+        get
+        {
+            if (customer is null) return "Hãy chọn khách hàng ở mục 1.";
+            if (lines.Count == 0) return "Hãy thêm ít nhất một dòng hàng.";
+            if (headerDiscount < 0 || headerDiscount > 100)
+                return "Chiết khấu đơn hàng phải từ 0 đến 100%.";
+            var bad = lines.FindIndex(l => string.IsNullOrEmpty(l.ItemCode) || l.Quantity <= 0
+                || l.DiscountPercent < 0 || l.DiscountPercent > 100);
+            if (bad >= 0) return $"Dòng {bad + 1} chưa đủ thông tin (hàng hóa, số lượng, CK 0–100%).";
+            return "";
+        }
+    }
 
     private static string FmtMoney(double n) =>
         n.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));

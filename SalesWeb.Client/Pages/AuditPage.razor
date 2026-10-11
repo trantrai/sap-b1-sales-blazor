@@ -51,7 +51,7 @@
     else
     {
         <div class="fm-table-wrap">
-            <FluentDataGrid Items="@items.AsQueryable()" TGridItem="AuditOut" Style="width:100%">
+            <FluentDataGrid EmptyContent="@emptyAudit" Items="@items.AsQueryable()" TGridItem="AuditOut" Style="width:100%">
                 <PropertyColumn Property="@(r => r.Id)" Title="#" />
                 <TemplateColumn Title="Thời gian">
                     <span style="white-space:nowrap">@context.CreatedAt</span>
@@ -157,6 +157,7 @@
 }
 
 @code {
+    private RenderFragment emptyAudit = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Không có bản ghi nào.</div>;
     private record Msg(string Text, bool IsError);
 
     private static string ErrorCellStyle(AuditOut r) =>

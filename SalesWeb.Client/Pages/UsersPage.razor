@@ -21,7 +21,7 @@
         </FluentButton>
     </div>
     <div class="fm-table-wrap">
-        <FluentDataGrid Items="@users.AsQueryable()" TGridItem="UserOut" Style="width:100%">
+        <FluentDataGrid EmptyContent="@emptyUsers" Items="@users.AsQueryable()" TGridItem="UserOut" Style="width:100%">
             <TemplateColumn Title="Tên đăng nhập">
                 <span style="font-weight:600">@context.Username</span>
             </TemplateColumn>
@@ -169,6 +169,7 @@
 }
 
 @code {
+    private RenderFragment emptyUsers = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Không có người dùng nào.</div>;
     private record Msg(string Text, bool IsError);
 
     private string MsgClass => msg is not null && msg.IsError

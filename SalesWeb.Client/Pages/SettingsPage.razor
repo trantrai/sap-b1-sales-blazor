@@ -95,6 +95,7 @@ else
         <p class="fm-card__desc">Khai báo các CompanyDB SAP B1 được phép truy cập. Danh sách này hiện ở màn Đăng nhập để user chọn database làm việc.</p>
         @if (dbList.Count > 0)
         {
+            <div class="fm-table-wrap">
             <table class="fm-table">
                 <thead>
                     <tr><th style="text-align:left">Mã database</th><th style="text-align:left">Tên hiển thị</th><th></th></tr>
@@ -115,6 +116,7 @@ else
                     }
                 </tbody>
             </table>
+            </div>
         }
         <div class="fm-form-grid" style="margin-top:10px">
             <div class="fm-field">
