@@ -11,7 +11,7 @@ public sealed class MasterDataController : ApiBaseController
 {
     private readonly IB1Client _b1;
     public MasterDataController(IB1Client b1) => _b1 = b1;
-    private MasterDataService Svc() => new(_b1);
+    private MasterDataService Svc() => new(_b1, CurrentUser.CompanyDb);
 
     [HttpGet("customers")]
     [RequireRole("viewer")]

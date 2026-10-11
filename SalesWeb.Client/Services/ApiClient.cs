@@ -182,13 +182,27 @@ public class ApiClient(HttpClient http, TokenStore tokens)
 
     public async Task<(OrderOut? Order, string? ETag)> GetOrderAsync(int docEntry)
     {
-        using var res = await SendRawAsync(HttpMethod.Get, $"api/orders/{docEntry}");
+        // Fix #7: dùng SendAsyncWithResponse để có refresh-on-401 như các API khác
+        using var res = await SendWithRefreshAsync(HttpMethod.Get, $"api/orders/{docEntry}");
         var text = await res.Content.ReadAsStringAsync();
         if (!res.IsSuccessStatusCode)
             throw new ApiException((int)res.StatusCode, ReadDetail(text, (int)res.StatusCode));
         var etag = res.Headers.ETag?.Tag?.Trim('"')
             ?? (res.Headers.TryGetValues("ETag", out var vs) ? vs.FirstOrDefault()?.Trim('"') : null);
         return (JsonSerializer.Deserialize<OrderOut>(text, JsonOpts), etag);
+    }
+
+    /// <summary>Gửi request có tự refresh token khi 401 — dùng cho các API cần đọc response thô.</summary>
+    private async Task<HttpResponseMessage> SendWithRefreshAsync(HttpMethod method, string url,
+        object? body = null, bool auth = true)
+    {
+        var res = await SendRawAsync(method, url, body, auth);
+        if (res.StatusCode == HttpStatusCode.Unauthorized && auth && await TryRefreshAsync())
+        {
+            res.Dispose();
+            res = await SendRawAsync(method, url, body, auth);
+        }
+        return res;
     }
 
     public Task<OrderOut?> CreateOrderAsync(OrderCreate o)

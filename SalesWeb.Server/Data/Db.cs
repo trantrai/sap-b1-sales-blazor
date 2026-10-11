@@ -57,36 +57,6 @@ public static class Db
                 updated_at TEXT DEFAULT (datetime('now'))
             );
 
-            CREATE TABLE IF NOT EXISTS md_customers (
-                card_code TEXT PRIMARY KEY,
-                card_name TEXT NOT NULL DEFAULT '',
-                phone TEXT DEFAULT '',
-                sales_person_code INTEGER,
-                price_list_num INTEGER,
-                currency TEXT DEFAULT '',
-                updated_at TEXT DEFAULT '',
-                synced_at TEXT DEFAULT (datetime('now'))
-            );
-            CREATE INDEX IF NOT EXISTS idx_md_customers_name ON md_customers(card_name);
-
-            CREATE TABLE IF NOT EXISTS md_items (
-                item_code TEXT PRIMARY KEY,
-                item_name TEXT NOT NULL DEFAULT '',
-                sales_unit TEXT DEFAULT '',
-                price REAL NOT NULL DEFAULT 0,
-                item_type TEXT DEFAULT '',
-                updated_at TEXT DEFAULT '',
-                synced_at TEXT DEFAULT (datetime('now'))
-            );
-            CREATE INDEX IF NOT EXISTS idx_md_items_name ON md_items(item_name);
-
-            CREATE TABLE IF NOT EXISTS md_tax_codes (
-                code TEXT PRIMARY KEY,
-                name TEXT NOT NULL DEFAULT '',
-                rate REAL NOT NULL DEFAULT 0,
-                synced_at TEXT DEFAULT (datetime('now'))
-            );
-
             CREATE TABLE IF NOT EXISTS md_sync_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 entity TEXT NOT NULL,
@@ -97,7 +67,51 @@ public static class Db
                 error TEXT DEFAULT ''
             );
             CREATE INDEX IF NOT EXISTS idx_md_sync_log_entity ON md_sync_log(entity, id);
+            """;
+        cmd.ExecuteNonQuery();
 
+        // Master data tách theo CompanyDB (fix #3: cô lập dữ liệu đa DB)
+        // Migration: bảng cũ không có company_db → drop để tạo lại (cache sync lại được)
+        EnsureMdTable(conn, "md_customers", @"
+            CREATE TABLE md_customers (
+                company_db TEXT NOT NULL DEFAULT '',
+                card_code TEXT NOT NULL,
+                card_name TEXT NOT NULL DEFAULT '',
+                phone TEXT DEFAULT '',
+                sales_person_code INTEGER,
+                price_list_num INTEGER,
+                currency TEXT DEFAULT '',
+                updated_at TEXT DEFAULT '',
+                synced_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (company_db, card_code)
+            );",
+            "CREATE INDEX idx_md_customers_name ON md_customers(company_db, card_name);");
+        EnsureMdTable(conn, "md_items", @"
+            CREATE TABLE md_items (
+                company_db TEXT NOT NULL DEFAULT '',
+                item_code TEXT NOT NULL,
+                item_name TEXT NOT NULL DEFAULT '',
+                sales_unit TEXT DEFAULT '',
+                price REAL NOT NULL DEFAULT 0,
+                item_type TEXT DEFAULT '',
+                updated_at TEXT DEFAULT '',
+                synced_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (company_db, item_code)
+            );",
+            "CREATE INDEX idx_md_items_name ON md_items(company_db, item_name);");
+        EnsureMdTable(conn, "md_tax_codes", @"
+            CREATE TABLE md_tax_codes (
+                company_db TEXT NOT NULL DEFAULT '',
+                code TEXT NOT NULL,
+                name TEXT NOT NULL DEFAULT '',
+                rate REAL NOT NULL DEFAULT 0,
+                synced_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (company_db, code)
+            );",
+            null);
+
+        using var cmd2 = conn.CreateCommand();
+        cmd2.CommandText = """
             CREATE TABLE IF NOT EXISTS sl_audit (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 created_at TEXT DEFAULT (datetime('now')),
@@ -131,7 +145,7 @@ public static class Db
             CREATE INDEX IF NOT EXISTS idx_refresh_hash ON refresh_tokens(token_hash);
             CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(username);
             """;
-        cmd.ExecuteNonQuery();
+        cmd2.ExecuteNonQuery();
 
         // Seed tài khoản admin lần đầu
         using var check = conn.CreateCommand();
@@ -153,6 +167,32 @@ public static class Db
         for (int i = 0; i < r.FieldCount; i++)
             d[r.GetName(i)] = r.IsDBNull(i) ? null : r.GetValue(i);
         return d;
+    }
+
+    /// <summary>
+    /// Tạo bảng master data với company_db; nếu bảng cũ chưa có cột company_db
+    /// thì drop để tạo lại (dữ liệu cache sẽ được sync lại).
+    /// </summary>
+    private static void EnsureMdTable(SqliteConnection con, string table, string createSql, string? indexSql)
+    {
+        using var check = con.CreateCommand();
+        check.CommandText = "SELECT COUNT(*) FROM pragma_table_info(@t) WHERE name='company_db'";
+        check.Parameters.AddWithValue("@t", table);
+        var hasCol = Convert.ToInt64(check.ExecuteScalar() ?? 0) > 0;
+
+        using var cmd = con.CreateCommand();
+        if (!hasCol)
+        {
+            // Bảng chưa tồn tại (COUNT=0) hoặc bảng cũ không có company_db → tạo mới
+            cmd.CommandText = $"DROP TABLE IF EXISTS {table}; {createSql}" +
+                (indexSql is null ? "" : $" {indexSql}");
+        }
+        else
+        {
+            cmd.CommandText = $"{createSql.Replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")}" +
+                (indexSql is null ? "" : $" {indexSql.Replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS")}");
+        }
+        cmd.ExecuteNonQuery();
     }
 }
 

@@ -12,7 +12,8 @@ services:
       # B1_SERVICE_LAYER_URL: "https://your-b1-server:50000/b1s/v2"
       # B1_COMPANY_DB: "SBODEMO_VN"
       # B1_USERNAME: "manager"
-      # B1_PASSWORD: "changeme"
-      JWT_SECRET: "doi-mat-khau-nay-di-toi-thieu-32-ky-tu-xxxx"
+      # B1_PASSWORD: "doi-mat-khau-b1-o-day"
+      # JWT_SECRET: "doi-mat-khau-nay-di-toi-thieu-32-ky-tu-xxxx"  # BẮT BUỘC khi B1_MOCK=false
+      # ADMIN_PASSWORD: "doi-mat-khau-admin-o-day"                # BẮT BUỘC khi B1_MOCK=false
       DATA_DIR: /app/data
     restart: unless-stopped

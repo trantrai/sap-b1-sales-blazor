@@ -10,13 +10,13 @@ namespace SalesWeb.Server.Controllers;
 [Route("api/sync")]
 public sealed class SyncController : ApiBaseController
 {
-    private readonly IB1Client _b1;
+    private readonly B1ClientPool _pool;
     private readonly SyncService _sync;
     private readonly ILogger<SyncController> _logger;
 
-    public SyncController(IB1Client b1, SyncService sync, ILogger<SyncController> logger)
+    public SyncController(B1ClientPool pool, SyncService sync, ILogger<SyncController> logger)
     {
-        _b1 = b1;
+        _pool = pool;
         _sync = sync;
         _logger = logger;
     }
@@ -59,10 +59,16 @@ public sealed class SyncController : ApiBaseController
         var entities = (body?.Entities ?? new List<string>())
             .Where(e => SyncService.Entities.Contains(e)).ToList();
         if (entities.Count == 0) entities = SyncService.Entities.ToList();
-        var b1 = _b1;
+        // Fix #4: snapshot CompanyDB trước khi chạy nền — không truyền scoped proxy vào Task.Run
+        var companyDb = CurrentUser.CompanyDb;
+        var username = CurrentUser.Username;
         _ = Task.Run(async () =>
         {
-            try { await _sync.SyncManyAsync(entities, b1); }
+            try
+            {
+                var b1 = _pool.GetClient(companyDb);
+                await _sync.SyncManyAsync(entities, b1, companyDb);
+            }
             catch (Exception ex) { _logger.LogError(ex, "Đồng bộ nền lỗi"); }
         });
         return Ok(new SyncStartOut

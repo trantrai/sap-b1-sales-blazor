@@ -26,6 +26,42 @@ public sealed class OrdersController : ApiBaseController
         => new(_b1, _cfg.ExternalIdUdf, username);
 
     /// <summary>
+    /// NVKD chỉ được thao tác đơn của mình (theo SalesPersonCode).
+    /// Manager/admin được thao tác mọi đơn. Ném 403 nếu vi phạm.
+    /// </summary>
+    private void EnsureOwnership(OrderOut order)
+    {
+        var user = CurrentUser;
+        if (user.Role == "sales" && user.SalesPersonCode.HasValue &&
+            order.SalesPersonCode != user.SalesPersonCode)
+            throw new ApiException(403, "Bạn chỉ được thao tác đơn hàng của mình.");
+    }
+
+    /// <summary>Validation nghiệp vụ cơ bản cho tạo đơn (fix #6).</summary>
+    private static void ValidateOrderCreate(OrderCreate body)
+    {
+        if (string.IsNullOrWhiteSpace(body.CardCode))
+            throw new ApiException(400, "Mã khách hàng không được để trống.");
+        if (body.Lines is null || body.Lines.Count == 0)
+            throw new ApiException(400, "Đơn hàng phải có ít nhất một dòng hàng.");
+        foreach (var l in body.Lines)
+        {
+            if (string.IsNullOrWhiteSpace(l.ItemCode))
+                throw new ApiException(400, "Mã hàng hoá không được để trống.");
+            if (double.IsNaN(l.Quantity) || double.IsInfinity(l.Quantity) || l.Quantity <= 0)
+                throw new ApiException(400, $"Số lượng phải > 0 (mã {l.ItemCode}).");
+            if (double.IsNaN(l.Price) || double.IsInfinity(l.Price) || l.Price < 0)
+                throw new ApiException(400, $"Đơn giá không hợp lệ (mã {l.ItemCode}).");
+        }
+        if (body.DocDueDate.HasValue && body.DocDate.HasValue &&
+            body.DocDueDate.Value < body.DocDate.Value)
+            throw new ApiException(400, "Ngày giao hàng không được trước ngày chứng từ.");
+        if (body.DocRate.HasValue &&
+            (double.IsNaN(body.DocRate.Value) || double.IsInfinity(body.DocRate.Value) || body.DocRate.Value <= 0))
+            throw new ApiException(400, "Tỷ giá phải > 0.");
+    }
+
+    /// <summary>
     /// Kiểm tra chiết khấu: 0–100%; ngưỡng theo vai trò cấu hình trong Settings
     /// (mặc định sales ≤ 10%, manager ≤ 20%, admin không giới hạn).
     /// </summary>
@@ -128,6 +164,8 @@ public sealed class OrdersController : ApiBaseController
     public async Task<ActionResult<OrderOut>> Get(int docEntry)
     {
         var (order, etag) = await Svc(CurrentUser.Username).GetAsync(docEntry);
+        if (order is null) return NotFound();
+        EnsureOwnership(order);
         if (!string.IsNullOrEmpty(etag))
             Response.Headers["ETag"] = etag;
         return Ok(order);
@@ -138,6 +176,7 @@ public sealed class OrdersController : ApiBaseController
     public async Task<ActionResult<OrderOut>> Create([FromBody] OrderCreate body)
     {
         var user = CurrentUser;
+        ValidateOrderCreate(body);
         // Mặc định gán NVKD tạo đơn
         if (body.SalesPersonCode is null && user.SalesPersonCode.HasValue)
             body.SalesPersonCode = user.SalesPersonCode;
@@ -159,6 +198,10 @@ public sealed class OrdersController : ApiBaseController
         if (body.DiscountPercent.HasValue || body.Lines?.Any(l => l.DiscountPercent.HasValue) == true)
             ValidateDiscounts(body.DiscountPercent ?? 0,
                 (body.Lines ?? new()).Select(l => l.DiscountPercent ?? 0));
+        // Kiểm tra quyền sở hữu TRƯỚC khi sửa — NVKD chỉ sửa đơn của mình
+        var (existing, _) = await Svc(CurrentUser.Username).GetAsync(docEntry);
+        if (existing is null) return NotFound();
+        EnsureOwnership(existing);
         var order = await Svc(CurrentUser.Username).UpdateAsync(docEntry, body);
         var detail = new Dictionary<string, object?>();
         if (body.Comments is not null) detail["comments"] = body.Comments;

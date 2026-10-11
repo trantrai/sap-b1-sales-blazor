@@ -17,7 +17,7 @@ public sealed class AppConfig
     public string JwtSecret { get; init; } = "demo-secret-32-chars-minimum-xxxxx";
     public int JwtExpireMinutes { get; init; } = 480;
     public string AdminUsername { get; init; } = "admin";
-    public string AdminPassword { get; init; } = "admin123";
+    public string AdminPassword { get; private set; } = "admin123";
     public string DataDir { get; init; } = "./data";
 
     private static string? Env(string name) => Environment.GetEnvironmentVariable(name);
@@ -39,7 +39,7 @@ public sealed class AppConfig
     public static AppConfig Load(IConfiguration cfg)
     {
         string S(string key, string dflt) => cfg[key] ?? dflt;
-        return new AppConfig
+        var config = new AppConfig
         {
             B1Mock = EnvBool("B1_MOCK", cfg.GetValue("B1:Mock", true)),
             B1ServiceLayerUrl = Env("B1_SERVICE_LAYER_URL") ?? S("B1:ServiceLayerUrl", "https://your-b1-server:50000/b1s/v2"),
@@ -55,6 +55,32 @@ public sealed class AppConfig
             AdminPassword = Env("ADMIN_PASSWORD") ?? S("Admin:Password", "admin123"),
             DataDir = Env("DATA_DIR") ?? S("DataDir", "./data"),
         };
+        config.Validate();
+        return config;
+    }
+
+    /// <summary>
+    /// Fail-fast: khi chạy B1 thật (production) phải có JWT secret đủ mạnh.
+    /// Chế độ mock/demo vẫn chạy được với giá trị mặc định để dễ thử nghiệm.
+    /// </summary>
+    private void Validate()
+    {
+        if (B1Mock)
+        {
+            // Demo mode: placeholder → dùng admin123 cho tiện thử nghiệm
+            if (AdminPassword == "CHANGE_ME_IN_PRODUCTION")
+                AdminPassword = "admin123";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(JwtSecret) || JwtSecret.Length < 32 ||
+            JwtSecret.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase) ||
+            JwtSecret == "demo-secret-32-chars-minimum-xxxxx")
+            throw new InvalidOperationException(
+                "JWT_SECRET is required (>= 32 chars, not the demo value) when B1_MOCK=false.");
+        if (AdminPassword == "admin123" ||
+            AdminPassword.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                "ADMIN_PASSWORD must be changed from the default when B1_MOCK=false.");
     }
 }
 

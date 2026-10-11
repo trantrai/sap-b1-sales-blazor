@@ -8,12 +8,12 @@ public static class MdStore
 {
     private static string Now() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-    public static int UpsertCustomers(List<Dictionary<string, object?>> rows)
+    public static int UpsertCustomers(string companyDb, List<Dictionary<string, object?>> rows)
     {
         var data = rows.Where(r => B1Json.Str(r, "CardCode") != "")
             .Select(r => new object?[]
             {
-                B1Json.Str(r, "CardCode"), B1Json.Str(r, "CardName"),
+                companyDb, B1Json.Str(r, "CardCode"), B1Json.Str(r, "CardName"),
                 B1Json.Str(r, "Phone1"), B1Json.IntN(r, "SalesPersonCode"),
                 B1Json.IntN(r, "PriceListNum"), B1Json.Str(r, "Currency"),
                 B1Json.Str(r, "UpdateDate"), Now(),
@@ -27,9 +27,9 @@ public static class MdStore
             cmd.Transaction = tx;
             cmd.CommandText = """
                 INSERT INTO md_customers
-                (card_code, card_name, phone, sales_person_code, price_list_num, currency, updated_at, synced_at)
-                VALUES ($0,$1,$2,$3,$4,$5,$6,$7)
-                ON CONFLICT(card_code) DO UPDATE SET
+                (company_db, card_code, card_name, phone, sales_person_code, price_list_num, currency, updated_at, synced_at)
+                VALUES ($0,$1,$2,$3,$4,$5,$6,$7,$8)
+                ON CONFLICT(company_db, card_code) DO UPDATE SET
                   card_name=excluded.card_name, phone=excluded.phone,
                   sales_person_code=excluded.sales_person_code,
                   price_list_num=excluded.price_list_num,
@@ -44,12 +44,12 @@ public static class MdStore
         return data.Count;
     }
 
-    public static int UpsertItems(List<Dictionary<string, object?>> rows)
+    public static int UpsertItems(string companyDb, List<Dictionary<string, object?>> rows)
     {
         var data = rows.Where(r => B1Json.Str(r, "ItemCode") != "")
             .Select(r => new object?[]
             {
-                B1Json.Str(r, "ItemCode"), B1Json.Str(r, "ItemName"),
+                companyDb, B1Json.Str(r, "ItemCode"), B1Json.Str(r, "ItemName"),
                 B1Json.Str(r, "SalesUnit"), B1Json.Num(r, "Price"),
                 B1Json.Str(r, "ItemType"), B1Json.Str(r, "UpdateDate"), Now(),
             }).ToList();
@@ -62,9 +62,9 @@ public static class MdStore
             cmd.Transaction = tx;
             cmd.CommandText = """
                 INSERT INTO md_items
-                (item_code, item_name, sales_unit, price, item_type, updated_at, synced_at)
-                VALUES ($0,$1,$2,$3,$4,$5,$6)
-                ON CONFLICT(item_code) DO UPDATE SET
+                (company_db, item_code, item_name, sales_unit, price, item_type, updated_at, synced_at)
+                VALUES ($0,$1,$2,$3,$4,$5,$6,$7)
+                ON CONFLICT(company_db, item_code) DO UPDATE SET
                   item_name=excluded.item_name, sales_unit=excluded.sales_unit,
                   price=excluded.price, item_type=excluded.item_type,
                   updated_at=excluded.updated_at, synced_at=excluded.synced_at
@@ -77,12 +77,12 @@ public static class MdStore
         return data.Count;
     }
 
-    public static int UpsertTaxCodes(List<Dictionary<string, object?>> rows)
+    public static int UpsertTaxCodes(string companyDb, List<Dictionary<string, object?>> rows)
     {
         var data = rows.Where(r => B1Json.Str(r, "Code") != "")
             .Select(r => new object?[]
             {
-                B1Json.Str(r, "Code"),
+                companyDb, B1Json.Str(r, "Code"),
                 B1Json.Str(r, "Name") != "" ? B1Json.Str(r, "Name") : B1Json.Str(r, "Code"),
                 B1Json.Num(r, "Rate"), Now(),
             }).ToList();
@@ -94,9 +94,9 @@ public static class MdStore
             using var cmd = conn.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = """
-                INSERT INTO md_tax_codes (code, name, rate, synced_at)
-                VALUES ($0,$1,$2,$3)
-                ON CONFLICT(code) DO UPDATE SET
+                INSERT INTO md_tax_codes (company_db, code, name, rate, synced_at)
+                VALUES ($0,$1,$2,$3,$4)
+                ON CONFLICT(company_db, code) DO UPDATE SET
                   name=excluded.name, rate=excluded.rate, synced_at=excluded.synced_at
                 """;
             for (int i = 0; i < d.Length; i++)
@@ -107,7 +107,7 @@ public static class MdStore
         return data.Count;
     }
 
-    public static int Count(string entity)
+    public static int Count(string entity, string companyDb)
     {
         var table = entity switch
         {
@@ -118,11 +118,12 @@ public static class MdStore
         };
         using var conn = Db.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"SELECT COUNT(*) FROM {table}";
+        cmd.CommandText = $"SELECT COUNT(*) FROM {table} WHERE company_db = $db";
+        cmd.Parameters.AddWithValue("$db", companyDb);
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
-    public static List<Dictionary<string, object?>> SearchCustomers(string q, int top = 20)
+    public static List<Dictionary<string, object?>> SearchCustomers(string companyDb, string q, int top = 20)
     {
         var like = $"%{q}%";
         using var conn = Db.Open();
@@ -130,9 +131,10 @@ public static class MdStore
         cmd.CommandText = """
             SELECT card_code, card_name, phone, sales_person_code, price_list_num
             FROM md_customers
-            WHERE card_code LIKE $q OR card_name LIKE $q
+            WHERE company_db = $db AND (card_code LIKE $q OR card_name LIKE $q)
             ORDER BY card_code LIMIT $top
             """;
+        cmd.Parameters.AddWithValue("$db", companyDb);
         cmd.Parameters.AddWithValue("$q", like);
         cmd.Parameters.AddWithValue("$top", top);
         using var r = cmd.ExecuteReader();
@@ -141,7 +143,7 @@ public static class MdStore
         return out_;
     }
 
-    public static List<Dictionary<string, object?>> SearchItems(string q, int top = 20)
+    public static List<Dictionary<string, object?>> SearchItems(string companyDb, string q, int top = 20)
     {
         var like = $"%{q}%";
         using var conn = Db.Open();
@@ -149,9 +151,10 @@ public static class MdStore
         cmd.CommandText = """
             SELECT item_code, item_name, sales_unit, price
             FROM md_items
-            WHERE item_code LIKE $q OR item_name LIKE $q
+            WHERE company_db = $db AND (item_code LIKE $q OR item_name LIKE $q)
             ORDER BY item_code LIMIT $top
             """;
+        cmd.Parameters.AddWithValue("$db", companyDb);
         cmd.Parameters.AddWithValue("$q", like);
         cmd.Parameters.AddWithValue("$top", top);
         using var r = cmd.ExecuteReader();
@@ -160,11 +163,12 @@ public static class MdStore
         return out_;
     }
 
-    public static List<Dictionary<string, object?>> ListTaxCodes()
+    public static List<Dictionary<string, object?>> ListTaxCodes(string companyDb)
     {
         using var conn = Db.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT code, name, rate FROM md_tax_codes ORDER BY code";
+        cmd.CommandText = "SELECT code, name, rate FROM md_tax_codes WHERE company_db = $db ORDER BY code";
+        cmd.Parameters.AddWithValue("$db", companyDb);
         using var r = cmd.ExecuteReader();
         var out_ = new List<Dictionary<string, object?>>();
         while (r.Read()) out_.Add(Db.RowToDict(r));

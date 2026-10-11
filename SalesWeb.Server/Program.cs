@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -97,6 +98,23 @@ var app = builder.Build();
 
 // ---------- Pipeline ----------
 app.UseApiErrors();
+
+// Fix #11: nhận IP thật khi chạy sau reverse proxy (cấu hình TRUSTED_PROXIES nếu cần)
+var fwdOpts = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+// Mặc định trust loopback/docker network; production nên set TRUSTED_PROXIES rõ ràng
+fwdOpts.KnownNetworks.Clear();
+fwdOpts.KnownProxies.Clear();
+var trusted = Environment.GetEnvironmentVariable("TRUSTED_PROXIES");
+if (!string.IsNullOrWhiteSpace(trusted))
+{
+    foreach (var ip in trusted.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        if (System.Net.IPAddress.TryParse(ip, out var addr))
+            fwdOpts.KnownProxies.Add(addr);
+}
+app.UseForwardedHeaders(fwdOpts);
 
 if (app.Environment.IsDevelopment())
 {

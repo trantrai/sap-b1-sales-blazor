@@ -10,10 +10,17 @@ namespace SalesWeb.Server.Services;
 public sealed class MasterDataService
 {
     private readonly IB1Client _b1;
+    private readonly string _companyDb;
     private static readonly ConcurrentDictionary<string, (DateTime At, object Value)> Cache = new();
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
 
-    public MasterDataService(IB1Client b1) => _b1 = b1;
+    public MasterDataService(IB1Client b1, string? companyDb = null)
+    {
+        _b1 = b1;
+        _companyDb = string.IsNullOrWhiteSpace(companyDb) ? "" : companyDb.Trim();
+    }
+
+    private string CacheKey(string key) => $"{_companyDb}:{key}";
 
     private static T? CacheGet<T>(string key) where T : class
     {
@@ -27,13 +34,13 @@ public sealed class MasterDataService
 
     public async Task<List<CustomerOut>> ListAllCustomersAsync()
     {
-        const string key = "cust:__all__";
+        var key = CacheKey("cust:__all__");
         var hit = CacheGet<List<CustomerOut>>(key);
         if (hit is not null) return hit;
         List<CustomerOut> out_;
-        if (MdStore.Count("customers") > 0)
+        if (MdStore.Count("customers", _companyDb) > 0)
         {
-            out_ = MdStore.SearchCustomers("", top: 5000).Select(r => new CustomerOut
+            out_ = MdStore.SearchCustomers(_companyDb, "", top: 5000).Select(r => new CustomerOut
             {
                 CardCode = B1Json.Str(r, "card_code"),
                 CardName = B1Json.Str(r, "card_name"),
@@ -53,13 +60,13 @@ public sealed class MasterDataService
 
     public async Task<List<CustomerOut>> SearchCustomersAsync(string q)
     {
-        var key = $"cust:{q.ToLowerInvariant()}";
+        var key = CacheKey($"cust:{q.ToLowerInvariant()}");
         var hit = CacheGet<List<CustomerOut>>(key);
         if (hit is not null) return hit;
         List<CustomerOut> out_;
-        if (MdStore.Count("customers") > 0)
+        if (MdStore.Count("customers", _companyDb) > 0)
         {
-            out_ = MdStore.SearchCustomers(q).Select(r => new CustomerOut
+            out_ = MdStore.SearchCustomers(_companyDb, q).Select(r => new CustomerOut
             {
                 CardCode = B1Json.Str(r, "card_code"),
                 CardName = B1Json.Str(r, "card_name"),
@@ -88,13 +95,13 @@ public sealed class MasterDataService
 
     public async Task<List<ItemOut>> SearchItemsAsync(string q)
     {
-        var key = $"item:{q.ToLowerInvariant()}";
+        var key = CacheKey($"item:{q.ToLowerInvariant()}");
         var hit = CacheGet<List<ItemOut>>(key);
         if (hit is not null) return hit;
         List<ItemOut> out_;
-        if (MdStore.Count("items") > 0)
+        if (MdStore.Count("items", _companyDb) > 0)
         {
-            out_ = MdStore.SearchItems(q).Select(r => new ItemOut
+            out_ = MdStore.SearchItems(_companyDb, q).Select(r => new ItemOut
             {
                 ItemCode = B1Json.Str(r, "item_code"),
                 ItemName = B1Json.Str(r, "item_name"),
@@ -121,13 +128,13 @@ public sealed class MasterDataService
 
     public async Task<List<ItemOut>> ListAllItemsAsync()
     {
-        const string key = "item:__all__";
+        var key = CacheKey("item:__all__");
         var hit = CacheGet<List<ItemOut>>(key);
         if (hit is not null) return hit;
         List<ItemOut> out_;
-        if (MdStore.Count("items") > 0)
+        if (MdStore.Count("items", _companyDb) > 0)
         {
-            out_ = MdStore.SearchItems("", top: 5000).Select(r => new ItemOut
+            out_ = MdStore.SearchItems(_companyDb, "", top: 5000).Select(r => new ItemOut
             {
                 ItemCode = B1Json.Str(r, "item_code"),
                 ItemName = B1Json.Str(r, "item_name"),
@@ -145,7 +152,7 @@ public sealed class MasterDataService
 
     /// <summary>Thuế suất — luôn đọc từ DB local (đồng bộ 1 lần, ít thay đổi).</summary>
     public Task<List<TaxCodeOut>> ListTaxCodesAsync()
-        => Task.FromResult(MdStore.ListTaxCodes().Select(r => new TaxCodeOut
+        => Task.FromResult(MdStore.ListTaxCodes(_companyDb).Select(r => new TaxCodeOut
         {
             Code = B1Json.Str(r, "code"),
             Name = B1Json.Str(r, "name"),
@@ -154,7 +161,7 @@ public sealed class MasterDataService
 
     public async Task<List<WarehouseOut>> ListWarehousesAsync()
     {
-        var hit = CacheGet<List<WarehouseOut>>("warehouses");
+        var hit = CacheGet<List<WarehouseOut>>(CacheKey("warehouses"));
         if (hit is not null) return hit;
         List<Dictionary<string, object?>> rows;
         try { rows = await _b1.ListWarehousesAsync(); }
@@ -164,7 +171,7 @@ public sealed class MasterDataService
             WarehouseCode = B1Json.Str(r, "WarehouseCode"),
             WarehouseName = B1Json.Str(r, "WarehouseName"),
         }).ToList();
-        CacheSet("warehouses", out_);
+        CacheSet(CacheKey("warehouses"), out_);
         return out_;
     }
 
@@ -180,7 +187,7 @@ public sealed class MasterDataService
             GroupNumber = B1Json.IntN(r, "GroupNumber") ?? 0,
             Name = B1Json.Str(r, "PaymentTermsGroupName"),
         }).ToList();
-        CacheSet("payment_terms", out_);
+        CacheSet(CacheKey("payment_terms"), out_);
         return out_;
     }
 
@@ -196,7 +203,7 @@ public sealed class MasterDataService
             Code = B1Json.IntN(r, "Code") ?? 0,
             Name = B1Json.Str(r, "Name"),
         }).ToList();
-        CacheSet("shipping_types", out_);
+        CacheSet(CacheKey("shipping_types"), out_);
         return out_;
     }
 
@@ -212,7 +219,7 @@ public sealed class MasterDataService
             Code = B1Json.IntN(r, "SalesEmployeeCode") ?? 0,
             Name = B1Json.Str(r, "SalesEmployeeName"),
         }).ToList();
-        CacheSet("sales_persons", out_);
+        CacheSet(CacheKey("sales_persons"), out_);
         return out_;
     }
 
