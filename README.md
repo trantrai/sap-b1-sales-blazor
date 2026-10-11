@@ -36,6 +36,9 @@ docker compose up -d --build   # http://localhost:8080
 - CRUD đơn hàng bán (idempotent theo `external_id`, sửa có ETag, hủy/đóng dòng)
 - **Chiết khấu dòng và chiết khấu đơn hàng** (ánh xạ `RDR1.DiscPrcnt` / `ORDR.DiscPrcnt`), breakdown tổng tiền chi tiết
 - **Ngưỡng chiết khấu theo vai trò**, admin tự cấu hình trong màn Cài đặt (sales/manager, admin không giới hạn)
+- **Đa database**: admin khai báo danh sách CompanyDB, user chọn database lúc đăng nhập (JWT claim `b1_db`), dữ liệu tách biệt từng DB
+- **Cache master data phía client**: autocomplete KH/hàng hoá tải 1 lần, chỉ tìm khi nhập từ 2 ký tự, lọc tức thì trên bộ nhớ (không gọi API mỗi lần gõ); tự làm mới sau đồng bộ
+- **Icon Fluent UI** trực quan trên menu điều hướng và các nút thao tác
 - Tra cứu KH / hàng hóa / kho / thuế suất, autocomplete
 - Đồng bộ master data vào SQLite local (`POST /api/sync`)
 - Audit mọi thao tác Service Layer + retry thông minh (`/audit`)
@@ -78,7 +81,7 @@ SalesWeb.Client/   Blazor WebAssembly + FluentBlazor (8 trang)
 
 ## Tài liệu kỹ thuật
 
-- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database
+- [Thiết kế giải pháp chi tiết](docs/thiet-ke-giai-phap.md) — kiến trúc, tích hợp Service Layer, chiết khấu, đa database, cache client, icon
 - [API payload chi tiết](docs/api-payload-chi-tiet.md) — endpoint, request/response từng API
 - [Màn hình — Sự kiện — API](docs/man-hinh-su-kien-api.md) — chi tiết từng màn hình và sự kiện
 - [Báo cáo QA UI/UX](docs/bao-cao-qa-ui-ux.md) — kết quả kiểm thử giao diện
