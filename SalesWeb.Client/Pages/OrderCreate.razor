@@ -71,15 +71,15 @@
                 <thead>
                     <tr>
                         <th style="width:36px">#</th>
-                        <th>Hàng hoá <span style="color:var(--fm-red)">*</span></th>
-                        <th class="fm-num" style="width:90px">SL *</th>
-                        <th class="fm-num" style="width:130px">Đơn giá</th>
-                        <th class="fm-num" style="width:80px">CK %</th>
-                        <th style="width:110px">Kho</th>
-                        <th style="width:150px">Ngày giao</th>
-                        <th style="width:130px">Thuế suất</th>
-                        <th class="fm-num" style="width:120px">Thành tiền</th>
-                        <th style="width:44px"></th>
+                        <th style="min-width:200px">Hàng hoá <span style="color:var(--fm-red)">*</span></th>
+                        <th class="fm-num" style="width:100px; min-width:100px">SL *</th>
+                        <th class="fm-num" style="width:130px; min-width:130px">Đơn giá</th>
+                        <th class="fm-num" style="width:80px; min-width:80px">CK %</th>
+                        <th style="width:110px; min-width:110px">Kho</th>
+                        <th style="width:150px; min-width:150px">Ngày giao</th>
+                        <th style="width:130px; min-width:130px">Thuế suất</th>
+                        <th class="fm-num" style="width:120px; min-width:120px">Thành tiền</th>
+                        <th style="width:44px; min-width:44px"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -408,7 +408,11 @@
         ln.PickedItem = item;
         ln.ItemCode = item?.ItemCode ?? "";
         ln.ItemName = item?.ItemName ?? "";
-        if (item is not null) ln.Price = item.Price;
+        if (item is not null)
+        {
+            ln.Price = item.Price;
+            if (!string.IsNullOrEmpty(item.TaxCode)) ln.TaxCode = item.TaxCode;
+        }
     }
 
     private void AddLine() => lines.Add(new LineVm());

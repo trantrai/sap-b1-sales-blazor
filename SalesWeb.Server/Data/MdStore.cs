@@ -51,7 +51,8 @@ public static class MdStore
             {
                 companyDb, B1Json.Str(r, "ItemCode"), B1Json.Str(r, "ItemName"),
                 B1Json.Str(r, "SalesUnit"), B1Json.Num(r, "Price"),
-                B1Json.Str(r, "ItemType"), B1Json.Str(r, "UpdateDate"), Now(),
+                B1Json.Str(r, "TaxCode"), B1Json.Str(r, "ItemType"),
+                B1Json.Str(r, "UpdateDate"), Now(),
             }).ToList();
         if (data.Count == 0) return 0;
         using var conn = Db.Open();
@@ -62,11 +63,12 @@ public static class MdStore
             cmd.Transaction = tx;
             cmd.CommandText = """
                 INSERT INTO md_items
-                (company_db, item_code, item_name, sales_unit, price, item_type, updated_at, synced_at)
-                VALUES ($0,$1,$2,$3,$4,$5,$6,$7)
+                (company_db, item_code, item_name, sales_unit, price, tax_code, item_type, updated_at, synced_at)
+                VALUES ($0,$1,$2,$3,$4,$5,$6,$7,$8)
                 ON CONFLICT(company_db, item_code) DO UPDATE SET
                   item_name=excluded.item_name, sales_unit=excluded.sales_unit,
-                  price=excluded.price, item_type=excluded.item_type,
+                  price=excluded.price, tax_code=excluded.tax_code,
+                  item_type=excluded.item_type,
                   updated_at=excluded.updated_at, synced_at=excluded.synced_at
                 """;
             for (int i = 0; i < d.Length; i++)

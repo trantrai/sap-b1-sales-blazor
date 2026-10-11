@@ -15,9 +15,9 @@ public sealed class MockB1Client : IB1Client
     };
     private readonly List<Dictionary<string, object?>> _items = new()
     {
-        new() { ["ItemCode"] = "A00001", ["ItemName"] = "Bàn làm việc gỗ", ["ItemType"] = "itItems", ["SalesUnit"] = "Cái", ["Price"] = 1500000 },
-        new() { ["ItemCode"] = "A00002", ["ItemName"] = "Ghế xoay văn phòng", ["ItemType"] = "itItems", ["SalesUnit"] = "Cái", ["Price"] = 850000 },
-        new() { ["ItemCode"] = "A00003", ["ItemName"] = "Tủ hồ sơ 4 ngăn", ["ItemType"] = "itItems", ["SalesUnit"] = "Cái", ["Price"] = 2300000 },
+        new() { ["ItemCode"] = "A00001", ["ItemName"] = "Bàn làm việc gỗ", ["ItemType"] = "itItems", ["SalesUnit"] = "Cái", ["Price"] = 1500000, ["TaxCode"] = "S1" },
+        new() { ["ItemCode"] = "A00002", ["ItemName"] = "Ghế xoay văn phòng", ["ItemType"] = "itItems", ["SalesUnit"] = "Cái", ["Price"] = 850000, ["TaxCode"] = "S1" },
+        new() { ["ItemCode"] = "A00003", ["ItemName"] = "Tủ hồ sơ 4 ngăn", ["ItemType"] = "itItems", ["SalesUnit"] = "Cái", ["Price"] = 2300000, ["TaxCode"] = "S1" },
     };
     private readonly List<Dictionary<string, object?>> _warehouses = new()
     {

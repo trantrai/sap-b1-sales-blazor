@@ -108,12 +108,22 @@ public static class Db
                 item_name TEXT NOT NULL DEFAULT '',
                 sales_unit TEXT DEFAULT '',
                 price REAL NOT NULL DEFAULT 0,
+                tax_code TEXT DEFAULT '',
                 item_type TEXT DEFAULT '',
                 updated_at TEXT DEFAULT '',
                 synced_at TEXT DEFAULT (datetime('now')),
                 PRIMARY KEY (company_db, item_code)
             );",
             "CREATE INDEX idx_md_items_name ON md_items(company_db, item_name);");
+        // Migration: thêm tax_code cho bảng md_items đã tồn tại
+        using var migItems = conn.CreateCommand();
+        migItems.CommandText = "SELECT COUNT(*) FROM pragma_table_info('md_items') WHERE name='tax_code'";
+        if (Convert.ToInt64(migItems.ExecuteScalar() ?? 0) == 0)
+        {
+            using var add = conn.CreateCommand();
+            add.CommandText = "ALTER TABLE md_items ADD COLUMN tax_code TEXT DEFAULT ''";
+            add.ExecuteNonQuery();
+        }
         EnsureMdTable(conn, "md_tax_codes", @"
             CREATE TABLE md_tax_codes (
                 company_db TEXT NOT NULL DEFAULT '',

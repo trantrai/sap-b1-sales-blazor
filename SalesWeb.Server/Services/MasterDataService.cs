@@ -119,6 +119,7 @@ public sealed class MasterDataService
                 ItemName = B1Json.Str(r, "item_name"),
                 SalesUnit = B1Json.Str(r, "sales_unit"),
                 Price = B1Json.Num(r, "price"),
+                TaxCode = B1Json.Str(r, "tax_code"),
             }).ToList();
         }
         else
@@ -132,6 +133,7 @@ public sealed class MasterDataService
                 ItemName = B1Json.Str(r, "ItemName"),
                 SalesUnit = B1Json.Str(r, "SalesUnit"),
                 Price = B1Json.Num(r, "Price"),
+                TaxCode = B1Json.Str(r, "TaxCode"),
             }).ToList();
         }
         CacheSet(key, out_);
@@ -152,6 +154,7 @@ public sealed class MasterDataService
                 ItemName = B1Json.Str(r, "item_name"),
                 SalesUnit = B1Json.Str(r, "sales_unit"),
                 Price = B1Json.Num(r, "price"),
+                TaxCode = B1Json.Str(r, "tax_code"),
             }).ToList();
         }
         else

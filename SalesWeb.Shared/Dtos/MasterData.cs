@@ -15,6 +15,7 @@ public class ItemOut
     public string ItemName { get; set; } = "";
     public string SalesUnit { get; set; } = "";
     public double Price { get; set; }
+    public string? TaxCode { get; set; }
 }
 
 public class WarehouseOut
