@@ -530,3 +530,9 @@ body[data-theme="dark"] .fm-table tr:hover td { background: #2d2c2b; }
 }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
 body[data-theme="dark"] #blazor-error-ui { background: #4a3b00; color: #f5f5f5; }
+
+/* ===== SVG chart theme tokens (P2-1) ===== */
+.fm-chart-label { fill: #666; }
+.fm-chart-axis { stroke: #ccc; }
+body[data-theme="dark"] .fm-chart-label { fill: #a19f9d; }
+body[data-theme="dark"] .fm-chart-axis { stroke: #3b3a39; }

@@ -62,11 +62,19 @@ public sealed class AppConfig
     /// <summary>
     /// Fail-fast: khi chạy B1 thật (production) phải có JWT secret đủ mạnh.
     /// Chế độ mock/demo vẫn chạy được với giá trị mặc định để dễ thử nghiệm.
+    /// P1-5: Production KHÔNG được chạy mock + credential mặc định im lặng.
     /// </summary>
     private void Validate()
     {
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "";
+        var isProd = env.Equals("Production", StringComparison.OrdinalIgnoreCase);
         if (B1Mock)
         {
+            // P1-5: chặn mock mode ở Production trừ khi có cờ xác nhận rõ ràng
+            if (isProd && Environment.GetEnvironmentVariable("ALLOW_DEMO_MOCK") != "1")
+                throw new InvalidOperationException(
+                    "B1_MOCK=true is not allowed in Production without ALLOW_DEMO_MOCK=1. " +
+                    "Set B1_MOCK=false with real B1 settings, or explicitly allow demo mode.");
             // Demo mode: placeholder → dùng admin123 cho tiện thử nghiệm
             if (AdminPassword == "CHANGE_ME_IN_PRODUCTION")
                 AdminPassword = "admin123";
@@ -93,6 +101,10 @@ public sealed class AppConfig
             (uri.Scheme != "https" && uri.Scheme != "http"))
             throw new InvalidOperationException(
                 "B1_SERVICE_LAYER_URL must be a valid http(s) URL when B1_MOCK=false.");
+        // P2-5: Production bắt buộc HTTPS (tránh lộ B1 credentials qua HTTP)
+        if (uri.Scheme == "http" && isProd && Environment.GetEnvironmentVariable("B1_ALLOW_HTTP") != "1")
+            throw new InvalidOperationException(
+                "B1_SERVICE_LAYER_URL must use HTTPS in Production (or set B1_ALLOW_HTTP=1 explicitly).");
         if (string.IsNullOrWhiteSpace(B1CompanyDb))
             throw new InvalidOperationException(
                 "B1_COMPANY_DB is required when B1_MOCK=false.");

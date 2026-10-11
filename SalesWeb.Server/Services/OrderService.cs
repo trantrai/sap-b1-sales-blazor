@@ -272,11 +272,13 @@ public sealed class OrderService
         catch (B1Exception ex) { throw B1ErrorToHttp(ex); }
     }
 
-    /// <summary>Thống kê dashboard (A1): lấy tối đa 1000 đơn gần nhất, tổng hợp trong bộ nhớ.</summary>
-    public async Task<DashboardStats> GetDashboardStatsAsync()
+    /// <summary>Thống kê dashboard (A1): lấy tối đa 1000 đơn gần nhất, tổng hợp trong bộ nhớ.
+    /// P0-2: salesPersonCode để scope theo NVKD (sales chỉ thấy đơn của mình).</summary>
+    public async Task<DashboardStats> GetDashboardStatsAsync(int? salesPersonCode = null)
     {
-        var paged = await ListAsync("", null, null, null, null, 1000, 0);
+        var paged = await ListAsync("", null, salesPersonCode, null, null, 1000, 0);
         var orders = paged.Items;
+        var scopeSuffix = salesPersonCode.HasValue ? " của bạn" : "";
         var stats = new DashboardStats
         {
             TotalOrders = paged.Total,
@@ -284,10 +286,10 @@ public sealed class OrderService
             OpenOrders = orders.Count(o => o.Status == "open"),
             ClosedOrders = orders.Count(o => o.Status == "closed"),
             CancelledOrders = orders.Count(o => o.Status == "cancelled"),
-            // Fix #5: ghi rõ phạm vi để UI hiển thị
+            // Fix #5 + P1-4: ghi rõ phạm vi để UI hiển thị
             ScopeNote = paged.Total > 1000
-                ? "Số liệu trong 1.000 đơn gần nhất"
-                : "Số liệu toàn bộ đơn hàng",
+                ? $"Số liệu trong 1.000 đơn gần nhất{scopeSuffix}"
+                : $"Số liệu toàn bộ đơn hàng{scopeSuffix}",
         };
         // Doanh thu 30 ngày gần nhất
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -321,26 +323,37 @@ public sealed class OrderService
         // Top 5 hàng hoá — fix #5: nếu list không có lines (live B1),
         // lấy chi tiết tối đa 50 đơn giá trị cao nhất để tính.
         // M5: bounded concurrency (tối đa 5 song song) + timeout để tránh N+1 chậm.
+        // P1-2: timeout/cancel chỉ làm TopItems rỗng — KPI chính không được fail.
         var ordersWithLines = orders.Where(o => o.Status != "cancelled").ToList();
         if (ordersWithLines.Count > 0 && ordersWithLines.All(o => o.Lines.Count == 0))
         {
             var topByValue = ordersWithLines.OrderByDescending(o => o.DocTotal).Take(50).ToList();
-            using var gate = new SemaphoreSlim(5, 5);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var tasks = topByValue.Select(async o =>
+            try
             {
-                await gate.WaitAsync(cts.Token);
-                try
+                using var gate = new SemaphoreSlim(5, 5);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var tasks = topByValue.Select(async o =>
                 {
-                    var (detail, _) = await GetAsync(o.DocEntry);
-                    return detail;
-                }
-                catch { return null; }
-                finally { gate.Release(); }
-            });
-            var details = await Task.WhenAll(tasks);
-            var withLines = details.Where(d => d is not null).Cast<OrderOut>().ToList();
-            if (withLines.Count > 0) ordersWithLines = withLines;
+                    // P1-2: chỉ release khi acquire thành công
+                    bool acquired = false;
+                    try
+                    {
+                        await gate.WaitAsync(cts.Token);
+                        acquired = true;
+                        var (detail, _) = await GetAsync(o.DocEntry);
+                        return detail;
+                    }
+                    catch { return null; }
+                    finally { if (acquired) gate.Release(); }
+                });
+                var details = await Task.WhenAll(tasks);
+                var withLines = details.Where(d => d is not null).Cast<OrderOut>().ToList();
+                if (withLines.Count > 0) ordersWithLines = withLines;
+            }
+            catch (OperationCanceledException)
+            {
+                // Timeout — giữ TopItems rỗng, không fail cả dashboard
+            }
         }
         stats.TopItems = ordersWithLines
             .SelectMany(o => o.Lines)

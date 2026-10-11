@@ -97,11 +97,15 @@ public sealed class OrdersController : ApiBaseController
     private static string FmtLimit(double n)
         => n.ToString("N2", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
 
-    /// <summary>Thống kê dashboard (A1).</summary>
+    /// <summary>Thống kê dashboard (A1). P0-2: sales chỉ thấy số liệu của mình.</summary>
     [HttpGet("stats")]
     [RequireRole("viewer")]
     public async Task<ActionResult<DashboardStats>> Stats()
-        => Ok(await Svc(CurrentUser.Username).GetDashboardStatsAsync());
+    {
+        var user = CurrentUser;
+        int? spc = user.Role == "sales" ? RequireSalesCode() : null;
+        return Ok(await Svc(user.Username).GetDashboardStatsAsync(spc));
+    }
 
     /// <summary>Xuất Excel danh sách đơn hàng (A2).</summary>
     [HttpGet("export")]

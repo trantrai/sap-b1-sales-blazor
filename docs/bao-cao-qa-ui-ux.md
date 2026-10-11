@@ -110,3 +110,16 @@ Build: `dotnet build` 0 lỗi.
 | S8 | Dark mode KPI colors | ✅ CSS class semantic, có biến thể dark |
 
 Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.
+
+## Phụ lục QA v2.4 — Review vòng 3
+
+| # | Test case | Kết quả |
+|---|---|---|
+| R1 | Migration từ DB cũ (md_sync_log chưa có company_db) | ✅ Add-column trước tạo index; dữ liệu cũ giữ nguyên |
+| R2 | Dashboard salesA (mã 1) vs admin | ✅ salesA: 1 đơn + "Số liệu toàn bộ đơn hàng của bạn"; admin: toàn bộ |
+| R3 | `B1_MOCK=true` + `ASPNETCORE_ENVIRONMENT=Production` | ✅ Fail-fast "B1_MOCK=true is not allowed in Production without ALLOW_DEMO_MOCK=1" |
+| R4 | Dashboard timeout TopItems | ✅ `OperationCanceledException` được bắt — KPI vẫn trả, TopItems rỗng |
+| R5 | SyncPage job 404 (server restart) | ✅ Dừng poll, báo "Job không còn tồn tại", reset trạng thái |
+| R6 | SVG chart dark mode | ✅ Dùng CSS class `fm-chart-bar*`, `fm-chart-label`, `fm-chart-axis` |
+
+Build: `dotnet build` 0 lỗi. User test đã xóa khỏi DB sau QA.

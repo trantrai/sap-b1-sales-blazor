@@ -144,17 +144,33 @@
                 await InvokeAsync(async () =>
                 {
                     bool done = false;
-                    if (!string.IsNullOrEmpty(jobId))
+                    try
                     {
-                        var job = await Api.GetSyncJobAsync(jobId);
-                        done = job is null || job.Status != "running";
-                        if (done && job?.Status == "error")
-                            error = job.Error;
+                        if (!string.IsNullOrEmpty(jobId))
+                        {
+                            // P1-3: job mất (server restart) → 404 → coi như xong, báo rõ
+                            var job = await Api.GetSyncJobAsync(jobId);
+                            done = job is null || job.Status != "running";
+                            if (done && job?.Status == "error")
+                                error = job.Error;
+                        }
+                        else
+                        {
+                            await Load();
+                            done = !running;
+                        }
                     }
-                    else
+                    catch (ApiException ex) when (ex.Status == 404)
                     {
-                        await Load();
-                        done = !running;
+                        // Job không còn (server restart, in-memory) — dừng poll, báo rõ
+                        done = true;
+                        error = "Job đồng bộ không còn tồn tại (server đã khởi động lại). Vui lòng chạy lại.";
+                    }
+                    catch (Exception ex)
+                    {
+                        // Network/server error — dừng poll để không kẹt trạng thái
+                        done = true;
+                        error = $"Lỗi khi theo dõi tiến trình: {ex.Message}";
                     }
                     if (done)
                     {

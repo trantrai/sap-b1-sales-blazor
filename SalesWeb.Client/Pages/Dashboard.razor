@@ -58,16 +58,17 @@ else
                 var d = stats.RevenueByDay[i];
                 var h = maxRevenue > 0 ? d.Revenue / maxRevenue * 160 : 0;
                 var x = 20 + i * 19;
+                // P2-1: dùng CSS class thay vì inline fill để dark mode có hiệu lực
                 <rect x="@x" y="@(180 - h)" width="14" height="@h" rx="2"
-                      fill="@(d.Revenue > 0 ? "#1E3A5F" : "#e0e0e0")">
+                      class="@(d.Revenue > 0 ? "fm-chart-bar" : "fm-chart-bar--empty")">
                     <title>@d.Date: @FmtMoney(d.Revenue) (@d.Orders đơn)</title>
                 </rect>
                 @if (i % 5 == 0)
                 {
-                    @((MarkupString)$"<text x=\"{x + 7}\" y=\"198\" font-size=\"9\" text-anchor=\"middle\" fill=\"#666\">{d.Date}</text>")
+                    @((MarkupString)$"<text x=\"{x + 7}\" y=\"198\" font-size=\"9\" text-anchor=\"middle\" class=\"fm-chart-label\">{d.Date}</text>")
                 }
             }
-            <line x1="15" y1="180" x2="595" y2="180" stroke="#ccc" />
+            <line x1="15" y1="180" x2="595" y2="180" class="fm-chart-axis" />
         </svg>
     </div>
 

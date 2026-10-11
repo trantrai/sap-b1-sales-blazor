@@ -113,6 +113,8 @@ Controllers giữ nguyên DI `IB1Client`, không cần sửa khi thêm database 
 | AD-15 | Sync status/job theo tenant (v2.3) | `md_sync_log` có `company_db`; `SyncStatus()`/`IsRunning()` lọc theo DB; `GET /api/sync/job/{id}` chỉ trả job cùng CompanyDB (khác → 404); SyncPage poll đúng job của mình qua JobId (M1/M2) | Status global — user DB A thấy dữ liệu DB B |
 | AD-16 | Fail-fast toàn bộ B1 live settings (v2.3) | Khi `B1_MOCK=false`: chặn JWT demo, admin password mặc định, B1 password placeholder, URL chứa `your-b1-server`/không hợp lệ, thiếu CompanyDB/username; `B1_VERIFY_SSL=false` cần Development hoặc `B1_ALLOW_INSECURE_SSL=1` (M3) | Chỉ validate JWT + admin password |
 | AD-17 | Dashboard TopItems bounded concurrency (v2.3) | Khi list B1 không có `DocumentLines`: fetch detail 50 đơn giá trị cao nhất, tối đa 5 song song, timeout 30s (M5) | Fetch tuần tự — chậm 50× round-trip |
+| AD-18 | Fail-closed migration + dashboard ownership (v2.4) | Migration `md_sync_log`: add-column `company_db` **trước** tạo index (P0-1); `GET /api/orders/stats` scope theo `SalesPersonCode` của sales + `ScopeNote` "của bạn" (P0-2); timeout TopItems chỉ làm rỗng TopItems, không fail KPI (P1-2) | Index trước column → upgrade fail; dashboard lộ dữ liệu cross-sales |
+| AD-19 | Production hardening (v2.4) | `B1_MOCK=true` ở Production cần `ALLOW_DEMO_MOCK=1` (P1-5); B1 URL live ở Production bắt buộc HTTPS trừ khi `B1_ALLOW_HTTP=1` (P2-5); SyncPage xử lý 404/network trong timer (P1-3); SVG chart dùng CSS class cho dark mode (P2-1) | Mock chạy im lặng ở prod; HTTP lộ credentials |
 
 ---
 

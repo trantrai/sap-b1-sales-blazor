@@ -57,9 +57,10 @@ public static class Db
                 updated_at TEXT DEFAULT (datetime('now'))
             );
 
+            -- P0-1: tạo bảng KHÔNG gồm company_db trước (tương thích DB cũ),
+            -- migration add-column chạy sau, rồi mới tạo index.
             CREATE TABLE IF NOT EXISTS md_sync_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                company_db TEXT NOT NULL DEFAULT '',
                 entity TEXT NOT NULL,
                 status TEXT NOT NULL,
                 started_at TEXT DEFAULT (datetime('now')),
@@ -67,9 +68,22 @@ public static class Db
                 records INTEGER NOT NULL DEFAULT 0,
                 error TEXT DEFAULT ''
             );
-            CREATE INDEX IF NOT EXISTS idx_md_sync_log_entity ON md_sync_log(company_db, entity, id);
             """;
         cmd.ExecuteNonQuery();
+
+        // Migration M1/P0-1: thêm company_db TRƯỚC khi tạo index
+        using var mig = conn.CreateCommand();
+        mig.CommandText = "SELECT COUNT(*) FROM pragma_table_info('md_sync_log') WHERE name='company_db'";
+        if (Convert.ToInt64(mig.ExecuteScalar() ?? 0) == 0)
+        {
+            using var add = conn.CreateCommand();
+            add.CommandText = "ALTER TABLE md_sync_log ADD COLUMN company_db TEXT NOT NULL DEFAULT ''";
+            add.ExecuteNonQuery();
+        }
+        // Index composite — chỉ tạo sau khi cột chắc chắn tồn tại
+        using var idx = conn.CreateCommand();
+        idx.CommandText = "CREATE INDEX IF NOT EXISTS idx_md_sync_log_entity ON md_sync_log(company_db, entity, id)";
+        idx.ExecuteNonQuery();
 
         // Master data tách theo CompanyDB (fix #3: cô lập dữ liệu đa DB)
         // Migration: bảng cũ không có company_db → drop để tạo lại (cache sync lại được)
@@ -147,16 +161,6 @@ public static class Db
             CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(username);
             """;
         cmd2.ExecuteNonQuery();
-
-        // Migration M1: md_sync_log cũ chưa có company_db → thêm cột
-        using var mig = conn.CreateCommand();
-        mig.CommandText = "SELECT COUNT(*) FROM pragma_table_info('md_sync_log') WHERE name='company_db'";
-        if (Convert.ToInt64(mig.ExecuteScalar() ?? 0) == 0)
-        {
-            using var add = conn.CreateCommand();
-            add.CommandText = "ALTER TABLE md_sync_log ADD COLUMN company_db TEXT NOT NULL DEFAULT ''";
-            add.ExecuteNonQuery();
-        }
 
         // Seed tài khoản admin lần đầu
         using var check = conn.CreateCommand();
