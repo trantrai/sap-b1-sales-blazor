@@ -168,7 +168,7 @@ public sealed class OrderService
         };
     }
 
-    public static string? BuildODataFilter(string status, string? cardCode, int? salesPersonCode,
+    public static string? BuildODataFilter(string status, string? cardCode, int? docNum, int? salesPersonCode,
         DateOnly? dateFrom, DateOnly? dateTo)
     {
         var parts = new List<string>();
@@ -177,6 +177,8 @@ public sealed class OrderService
         else if (status == "cancelled") parts.Add("Cancelled eq 'tYES'");
         if (!string.IsNullOrEmpty(cardCode))
             parts.Add($"CardCode eq '{cardCode.Replace("'", "''")}'");
+        if (docNum.HasValue)
+            parts.Add($"DocNum eq {docNum.Value}");
         if (salesPersonCode.HasValue)
             parts.Add($"SalesPersonCode eq {salesPersonCode.Value}");
         if (dateFrom.HasValue)
@@ -252,13 +254,13 @@ public sealed class OrderService
         catch (B1Exception ex) { throw B1ErrorToHttp(ex); }
     }
 
-    public async Task<PagedOrders> ListAsync(string status, string? cardCode, int? salesPersonCode,
+    public async Task<PagedOrders> ListAsync(string status, string? cardCode, int? docNum, int? salesPersonCode,
         DateOnly? dateFrom, DateOnly? dateTo, int top, int skip)
     {
         try
         {
             var data = await _b1.ListOrdersAsync(top, skip,
-                BuildODataFilter(status, cardCode, salesPersonCode, dateFrom, dateTo));
+                BuildODataFilter(status, cardCode, docNum, salesPersonCode, dateFrom, dateTo));
             var total = data.TryGetValue("odata.count", out var c) && c is not null
                 ? Convert.ToInt32(c.ToString())
                 : B1Json.DictList(data, "value").Count;
@@ -276,7 +278,7 @@ public sealed class OrderService
     /// P0-2: salesPersonCode để scope theo NVKD (sales chỉ thấy đơn của mình).</summary>
     public async Task<DashboardStats> GetDashboardStatsAsync(int? salesPersonCode = null)
     {
-        var paged = await ListAsync("", null, salesPersonCode, null, null, 1000, 0);
+        var paged = await ListAsync("", null, null, salesPersonCode, null, null, 1000, 0);
         var orders = paged.Items;
         var scopeSuffix = salesPersonCode.HasValue ? " của bạn" : "";
         var stats = new DashboardStats

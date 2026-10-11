@@ -244,7 +244,7 @@
             // Tìm đơn hàng theo số đơn
             if (int.TryParse(q.TrimStart('#'), out var docNum))
             {
-                var paged = await Api.ListOrdersAsync("", "", 5, 0);
+                var paged = await Api.ListOrdersAsync("", "", null, 5, 0);
                 var match = paged?.Items.FirstOrDefault(o => o.DocNum == docNum);
                 if (match is not null)
                     globalResults.Add(new("order", $"Đơn #{match.DocNum}",

@@ -225,6 +225,11 @@ public sealed class MockB1Client : IB1Client
             ok &= B1Json.Str(order, "DocumentStatus") == "bost_Close";
         if (filt.Contains("Cancelled eq 'tYES'"))
             ok &= B1Json.Str(order, "Cancelled") == "tYES";
+        if (filt.Contains("DocNum eq "))
+        {
+            var num = filt.Split("DocNum eq ")[1].Split(" ")[0].Trim(')');
+            ok &= (B1Json.IntN(order, "DocNum")?.ToString() ?? "") == num;
+        }
         if (filt.Contains("CardCode eq '"))
         {
             var code = filt.Split("CardCode eq '")[1].Split("'")[0];

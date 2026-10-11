@@ -119,7 +119,7 @@ public sealed class OrdersController : ApiBaseController
         var user = CurrentUser;
         // P0-1: sales bắt buộc có mã NVKD mới được xuất (fail-closed)
         int? spc = user.Role == "sales" ? RequireSalesCode() : null;
-        var paged = await Svc(user.Username).ListAsync(status, card_code,
+        var paged = await Svc(user.Username).ListAsync(status, card_code, null,
             spc, date_from, date_to, 1000, 0);
         using var wb = new ClosedXML.Excel.XLWorkbook();
         var ws = wb.Worksheets.Add("DonHang");
@@ -163,6 +163,7 @@ public sealed class OrdersController : ApiBaseController
     public async Task<ActionResult<PagedOrders>> List(
         [FromQuery] string status = "open",
         [FromQuery] string? card_code = null,
+        [FromQuery] int? doc_num = null,
         [FromQuery] int? sales_person_code = null,
         [FromQuery] DateOnly? date_from = null,
         [FromQuery] DateOnly? date_to = null,
@@ -179,7 +180,7 @@ public sealed class OrdersController : ApiBaseController
         }
         top = Math.Min(top, 200);
         return Ok(await Svc(user.Username).ListAsync(
-            status, card_code, sales_person_code, date_from, date_to, top, skip));
+            status, card_code, doc_num, sales_person_code, date_from, date_to, top, skip));
     }
 
     [HttpGet("{docEntry:int}")]

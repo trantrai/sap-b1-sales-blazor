@@ -173,10 +173,11 @@ public class ApiClient(HttpClient http, TokenStore tokens)
         => SendAsync<RoleMatrix>(HttpMethod.Get, "api/auth/roles");
 
     // ---------------- Orders ----------------
-    public Task<PagedOrders?> ListOrdersAsync(string? status, string? cardCode, int top, int skip)
+    public Task<PagedOrders?> ListOrdersAsync(string? status, string? cardCode, int? docNum, int top, int skip)
         => SendAsync<PagedOrders>(HttpMethod.Get, Q("api/orders", new Dictionary<string, string?>
         {
             ["status"] = status, ["card_code"] = cardCode,
+            ["doc_num"] = docNum?.ToString(),
             ["top"] = top.ToString(), ["skip"] = skip.ToString(),
         }));
 

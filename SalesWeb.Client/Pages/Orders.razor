@@ -22,6 +22,8 @@
     </div>
     <FluentTextInput @bind-Value="cardCode" @bind-Value:event="oninput" Placeholder="Mã KH (VD: C20000)"
                      Style="min-width:150px" @onkeydown="OnFilterKey" />
+    <FluentTextInput @bind-Value="docNumStr" @bind-Value:event="oninput" Placeholder="Số đơn (VD: 5001)"
+                     Style="min-width:130px" @onkeydown="OnFilterKey" />
     <FluentButton Appearance="ButtonAppearance.Primary" OnClick="ApplyFilter"
                   IconStart="@(new Icons.Regular.Size20.Filter())">Lọc</FluentButton>
     <FluentButton Appearance="ButtonAppearance.Outline" OnClick="ExportExcel" Disabled="@exporting"
@@ -81,6 +83,8 @@
     private int total;
     private string? status = "open";
     private string? cardCode;
+    private string? docNumStr;
+    private int? docNum => int.TryParse((docNumStr ?? "").Trim(), out var n) ? n : null;
     private int skip;
     private const int top = 20;
     private bool loading;
@@ -149,7 +153,7 @@
         loading = true; error = "";
         try
         {
-            var data = await Api.ListOrdersAsync(status, cardCode, top, skip);
+            var data = await Api.ListOrdersAsync(status, cardCode, docNum, top, skip);
             orders = data?.Items ?? new();
             total = data?.Total ?? 0;
         }
