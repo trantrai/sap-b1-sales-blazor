@@ -12,13 +12,13 @@ namespace SalesWeb.Server.Controllers;
 public sealed class SettingsController : ApiBaseController
 {
     private readonly ConnService _conn;
-    private readonly B1ClientHolder _holder;
+    private readonly B1ClientPool _pool;
     private readonly SyncService _sync;
 
-    public SettingsController(ConnService conn, B1ClientHolder holder, SyncService sync)
+    public SettingsController(ConnService conn, B1ClientPool pool, SyncService sync)
     {
         _conn = conn;
-        _holder = holder;
+        _pool = pool;
         _sync = sync;
     }
 
@@ -35,13 +35,10 @@ public sealed class SettingsController : ApiBaseController
         try { saved = _conn.Save(body); }
         catch (ArgumentException ex) { throw new ApiException(400, ex.Message); }
 
-        // Rebuild B1 client runtime để áp dụng ngay, không cần restart server
-        var old = _holder.Current;
-        IB1Client next;
-        try { next = _conn.BuildClient(); }
-        catch (Exception ex) { throw new ApiException(400, $"Không khởi tạo được client B1: {ex.Message}"); }
-        _holder.Current = next;
-        try { await old.CloseAsync(); } catch { /* bỏ qua */ }
+        // Rebuild B1 client runtime để áp dụng ngay: xóa pool, client mới sẽ build lại
+        // theo đúng CompanyDB từng user đã chọn lúc đăng nhập
+        await _pool.ClearAsync();
+        var next = _pool.GetClient(null);
 
         var eff = _conn.GetEffective();
         string? hint = null;
@@ -82,9 +79,7 @@ public sealed class SettingsController : ApiBaseController
     {
         var l = _conn.GetDiscountLimits();
         return Ok(new DiscountLimitsOut { Sales = l.Sales, Manager = l.Manager });
-    }
-
-    [HttpPut("discount-limits")]
+    }    [HttpPut("discount-limits")]
     [RequireRole("admin")]
     public ActionResult<DiscountLimitsOut> SaveDiscountLimits([FromBody] DiscountLimitsIn body)
     {
@@ -96,6 +91,31 @@ public sealed class SettingsController : ApiBaseController
                 new Dictionary<string, object?> { ["sales"] = l.Sales, ["manager"] = l.Manager },
                 ClientIp);
             return Ok(new DiscountLimitsOut { Sales = l.Sales, Manager = l.Manager });
+        }
+        catch (ArgumentException ex) { throw new ApiException(400, ex.Message); }
+    }
+
+    [HttpGet("databases")]
+    [RequireRole("admin")]
+    public ActionResult<DbListOut> GetDatabases()
+        => Ok(new DbListOut { Databases = _conn.GetDatabases(), Default = _conn.DefaultCompanyDb() });
+
+    [HttpPut("databases")]
+    [RequireRole("admin")]
+    public ActionResult<DbListOut> SaveDatabases([FromBody] List<DbEntry> body)
+    {
+        try
+        {
+            var saved = _conn.SaveDatabases(body);
+            // Database mặc định phải nằm trong danh sách đã khai báo
+            var dflt = _conn.DefaultCompanyDb();
+            if (!saved.Any(d => d.Code.Equals(dflt, StringComparison.OrdinalIgnoreCase)))
+                throw new ApiException(400,
+                    $"Database mặc định '{dflt}' không có trong danh sách — hãy cập nhật CompanyDB trước.");
+            AuditLog.LogAction(CurrentUser.Username, "settings.databases", "Settings",
+                "databases",
+                new Dictionary<string, object?> { ["count"] = saved.Count }, ClientIp);
+            return Ok(new DbListOut { Databases = saved, Default = _conn.DefaultCompanyDb() });
         }
         catch (ArgumentException ex) { throw new ApiException(400, ex.Message); }
     }

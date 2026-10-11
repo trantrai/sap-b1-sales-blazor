@@ -30,9 +30,3 @@ public interface IB1Client
     Task<List<Dictionary<string, object?>>> FetchItemsPageAsync(int top = 500, int skip = 0);
     Task<List<Dictionary<string, object?>>> FetchTaxCodesAsync();
 }
-
-/// <summary>Holder cho phép rebuild IB1Client singleton lúc runtime (đổi cài đặt kết nối).</summary>
-public sealed class B1ClientHolder
-{
-    public IB1Client Current { get; set; } = null!;
-}

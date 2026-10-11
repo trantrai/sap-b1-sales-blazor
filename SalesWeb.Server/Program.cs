@@ -22,8 +22,11 @@ Db.InitAll(appConfig);
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<ConnService>();
 builder.Services.AddSingleton<SyncService>();
-builder.Services.AddSingleton<B1ClientHolder>();
-builder.Services.AddSingleton<IB1Client>(sp => sp.GetRequiredService<B1ClientHolder>().Current);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<B1ClientPool>();
+// IB1Client theo request: proxy điều hướng tới client của đúng CompanyDB
+// mà user đã chọn lúc đăng nhập (claim b1_db trong JWT)
+builder.Services.AddScoped<IB1Client, B1ClientProxy>();
 
 // ---------- JWT bearer ----------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -80,9 +83,9 @@ app.UseAuthorization();
 app.MapControllers();
 
 // ---------- Khởi tạo B1 client ----------
-var holder = app.Services.GetRequiredService<B1ClientHolder>();
+var pool = app.Services.GetRequiredService<B1ClientPool>();
 var connSvc = app.Services.GetRequiredService<ConnService>();
-holder.Current = connSvc.BuildClient();
+var defaultClient = pool.GetClient(null);
 var eff = connSvc.GetEffective();
 var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
 logger.LogInformation("Khởi động xong — chế độ: {Mode}",
@@ -91,7 +94,7 @@ if (eff.B1Mock)
 {
     // Mock: dữ liệu trong RAM nên tự đồng bộ vào DB local để demo tra cứu nhanh
     var sync = app.Services.GetRequiredService<SyncService>();
-    await sync.SyncManyAsync(new[] { "customers", "items", "tax_codes" }, holder.Current);
+    await sync.SyncManyAsync(new[] { "customers", "items", "tax_codes" }, defaultClient);
     logger.LogInformation("Đã nạp master data mock vào DB local");
 }
 

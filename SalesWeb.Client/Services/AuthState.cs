@@ -45,9 +45,9 @@ public class AuthState : AuthenticationStateProvider
         return new AuthenticationState(BuildPrincipal(User!));
     }
 
-    public async Task LoginAsync(string username, string password)
+    public async Task LoginAsync(string username, string password, string companyDb = "")
     {
-        var t = await _api.LoginAsync(username, password)
+        var t = await _api.LoginAsync(username, password, companyDb)
             ?? throw new ApiException(401, "Đăng nhập thất bại.");
         if (string.IsNullOrEmpty(t.AccessToken))
             throw new ApiException(401, "Đăng nhập thất bại.");

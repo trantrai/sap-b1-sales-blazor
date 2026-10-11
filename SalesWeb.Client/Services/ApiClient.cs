@@ -94,9 +94,12 @@ public class ApiClient(HttpClient http, TokenStore tokens)
     }
 
     // ---------------- Auth ----------------
-    public Task<TokenOut?> LoginAsync(string username, string password)
+    public Task<TokenOut?> LoginAsync(string username, string password, string companyDb = "")
         => SendAsync<TokenOut>(HttpMethod.Post, "api/auth/login",
-            new LoginIn { Username = username, Password = password }, auth: false);
+            new LoginIn { Username = username, Password = password, CompanyDb = companyDb }, auth: false);
+
+    public Task<DbListOut?> GetDatabasesAsync()
+        => SendAsync<DbListOut>(HttpMethod.Get, "api/auth/databases", auth: false);
 
     public Task<UserOut?> GetMeAsync() => SendAsync<UserOut>(HttpMethod.Get, "api/auth/me");
 
@@ -218,6 +221,12 @@ public class ApiClient(HttpClient http, TokenStore tokens)
 
     public Task<DiscountLimitsOut?> SaveDiscountLimitsAsync(DiscountLimitsIn l)
         => SendAsync<DiscountLimitsOut>(HttpMethod.Put, "api/settings/discount-limits", l);
+
+    public Task<DbListOut?> GetDbListAsync()
+        => SendAsync<DbListOut>(HttpMethod.Get, "api/settings/databases");
+
+    public Task<DbListOut?> SaveDbListAsync(List<DbEntry> dbs)
+        => SendAsync<DbListOut>(HttpMethod.Put, "api/settings/databases", dbs);
 
     public Task<HealthOut?> GetHealthAsync()
         => SendAsync<HealthOut>(HttpMethod.Get, "health", auth: false);

@@ -52,9 +52,11 @@ else
                                  Placeholder="https://b1-server:50000/b1s/v2" Style="width:100%" />
             </div>
             <div class="fm-field">
-                <label class="fm-label">CompanyDB</label>
-                <FluentTextInput @bind-Value="form.B1CompanyDb" Disabled="@IsMock"
-                                 Placeholder="SBODEMO_VN" Style="width:100%" />
+                <label class="fm-label">CompanyDB (mặc định hệ thống)</label>
+                <FluentSelect TValue="string" TOption="DbEntry"
+                              Items="@dbList" OptionText="@(d => string.IsNullOrWhiteSpace(d.Name) || d.Name == d.Code ? d.Code : $"{d.Name} ({d.Code})")" OptionValue="@(d => d.Code)"
+                              @bind-Value="form.B1CompanyDb" Disabled="@IsMock" Style="width:100%" />
+                <div class="fm-hint">Chọn từ danh sách database đã khai báo bên dưới</div>
             </div>
             <div class="fm-field">
                 <label class="fm-label">Tên đăng nhập (kỹ thuật)</label>
@@ -85,6 +87,55 @@ else
                 Nên dùng tài khoản kỹ thuật (service account) riêng cho tích hợp, không dùng
                 tài khoản manager cá nhân. Mật khẩu được mã hoá trước khi lưu vào DB local.
             </div>
+        </div>
+    </div>
+
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Danh sách database truy cập</h2>
+        <p class="fm-card__desc">Khai báo các CompanyDB SAP B1 được phép truy cập. Danh sách này hiện ở màn Đăng nhập để user chọn database làm việc.</p>
+        @if (dbList.Count > 0)
+        {
+            <table class="fm-table">
+                <thead>
+                    <tr><th style="text-align:left">Mã database</th><th style="text-align:left">Tên hiển thị</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in dbList)
+                    {
+                        <tr>
+                            <td><b>@d.Code</b>@(d.Code == dbDefault ? " (mặc định)" : "")</td>
+                            <td>@d.Name</td>
+                            <td style="text-align:right">
+                                <FluentButton Appearance="ButtonAppearance.Subtle" Disabled="@(busy is not null || dbList.Count <= 1)"
+                                              OnClick="@(() => dbList.Remove(d))" Title="Xóa">
+                                    Xóa
+                                </FluentButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <div class="fm-form-grid" style="margin-top:10px">
+            <div class="fm-field">
+                <label class="fm-label">Mã database mới</label>
+                <FluentTextInput @bind-Value="newDbCode" Placeholder="VD: SBODEMO_VN" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Tên hiển thị</label>
+                <FluentTextInput @bind-Value="newDbName" Placeholder="VD: Demo VN" Style="width:100%" />
+            </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:10px">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="AddDb">
+                + Thêm database
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveDbs">
+                @(busy == "dbs" ? "Đang lưu…" : "Lưu danh sách database")
+            </FluentButton>
+        </div>
+        <div class="fm-hint" style="margin-top:6px">
+            Database mặc định của hệ thống (CompanyDB ở trên) phải nằm trong danh sách này.
         </div>
     </div>
 
@@ -135,11 +186,16 @@ else
     private double timeout = 30;
     private bool fromDb;
     private bool loading = true;
-    private string? busy; // "test" | "save" | "limits"
+    private string? busy; // "test" | "save" | "limits" | "dbs"
     private Msg? msg;
 
     private double discSales = 10;
     private double discManager = 20;
+
+    private List<DbEntry> dbList = new();
+    private string dbDefault = "";
+    private string newDbCode = "";
+    private string newDbName = "";
 
     private bool IsMock => modeMock == "mock";
     private string modeMock = "mock";
@@ -168,6 +224,17 @@ else
             }
             var lim = await Api.GetDiscountLimitsAsync();
             if (lim is not null) { discSales = lim.Sales; discManager = lim.Manager; }
+            var dbs = await Api.GetDbListAsync();
+            if (dbs is not null)
+            {
+                dbList = dbs.Databases;
+                dbDefault = dbs.Default;
+                // Mặc định bind theo database user đã chọn lúc đăng nhập
+                var loginDb = Auth.User?.CompanyDb;
+                form.B1CompanyDb = !string.IsNullOrEmpty(loginDb)
+                    && dbList.Any(d => d.Code.Equals(loginDb, StringComparison.OrdinalIgnoreCase))
+                    ? loginDb : dbDefault;
+            }
         }
         catch (ApiException ex) { msg = new Msg(ex.Message, true); }
         finally { loading = false; }
@@ -194,9 +261,31 @@ else
         finally { busy = null; }
     }
 
-    private async Task DoSaveLimits()
+    private void AddDb()
     {
-        busy = "limits"; msg = null;
+        var code = (newDbCode ?? "").Trim();
+        if (string.IsNullOrEmpty(code)) { msg = new Msg("Nhập mã database trước khi thêm.", true); return; }
+        if (dbList.Any(d => d.Code.Equals(code, StringComparison.OrdinalIgnoreCase)))
+        { msg = new Msg($"Database '{code}' đã có trong danh sách.", true); return; }
+        dbList.Add(new DbEntry { Code = code, Name = string.IsNullOrWhiteSpace(newDbName) ? code : newDbName.Trim() });
+        newDbCode = ""; newDbName = ""; msg = null;
+    }
+
+    private async Task DoSaveDbs()
+    {
+        busy = "dbs"; msg = null;
+        try
+        {
+            var r = await Api.SaveDbListAsync(dbList);
+            if (r is not null) { dbList = r.Databases; dbDefault = r.Default; }
+            msg = new Msg($"Đã lưu {dbList.Count} database. Danh sách mới hiện ở màn Đăng nhập.", false);
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+
+    private async Task DoSaveLimits()
+    {        busy = "limits"; msg = null;
         try
         {
             var r = await Api.SaveDiscountLimitsAsync(new DiscountLimitsIn

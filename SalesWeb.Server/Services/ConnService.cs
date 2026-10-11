@@ -195,16 +195,77 @@ public sealed class ConnService
         return GetDiscountLimits();
     }
 
+    // ---------------- danh sách database truy cập ----------------
+    /// <summary>
+    /// Danh sách CompanyDB được khai báo cho phép truy cập (lưu JSON trong app_settings).
+    /// Nếu chưa khai báo, trả về 1 mục theo company_db hiện tại.
+    /// </summary>
+    public List<DbEntry> GetDatabases()
+    {
+        using var conn = Db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT value FROM app_settings WHERE key = 'b1_databases'";
+        var raw = cmd.ExecuteScalar() as string;
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            try
+            {
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<DbEntry>>(raw,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (list is { Count: > 0 })
+                    return list.Where(e => !string.IsNullOrWhiteSpace(e.Code))
+                        .Select(e => new DbEntry
+                        {
+                            Code = e.Code.Trim(),
+                            Name = string.IsNullOrWhiteSpace(e.Name) ? e.Code.Trim() : e.Name.Trim(),
+                        }).ToList();
+            }
+            catch { /* JSON hỏng -> dùng mặc định */ }
+        }
+        var dflt = GetEffective().B1CompanyDb;
+        return new List<DbEntry> { new() { Code = dflt, Name = dflt } };
+    }
+
+    public List<DbEntry> SaveDatabases(List<DbEntry> entries)
+    {
+        var clean = (entries ?? new())
+            .Where(e => e is not null && !string.IsNullOrWhiteSpace(e.Code))
+            .Select(e => new DbEntry
+            {
+                Code = e.Code.Trim(),
+                Name = string.IsNullOrWhiteSpace(e.Name) ? e.Code.Trim() : e.Name.Trim(),
+            }).ToList();
+        if (clean.Count == 0)
+            throw new ArgumentException("Danh sách database phải có ít nhất một mục.");
+        if (clean.Select(e => e.Code.ToUpperInvariant()).Distinct().Count() != clean.Count)
+            throw new ArgumentException("Mã database không được trùng nhau.");
+        var json = System.Text.Json.JsonSerializer.Serialize(clean);
+        using var conn = Db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO app_settings (key, value, updated_at)
+            VALUES ('b1_databases', $v, datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=datetime('now')
+            """;
+        cmd.Parameters.AddWithValue("$v", json);
+        cmd.ExecuteNonQuery();
+        return clean;
+    }
+
     // ---------------- dùng runtime ----------------
-    public IB1Client BuildClient()
+    public IB1Client BuildClient(string? companyDbOverride = null)
     {
         var eff = GetEffective();
+        var db = string.IsNullOrWhiteSpace(companyDbOverride) ? eff.B1CompanyDb : companyDbOverride.Trim();
         if (eff.B1Mock)
             return new MockB1Client(_cfg.ExternalIdUdf);
         return new RealB1Client(
-            eff.B1ServiceLayerUrl, eff.B1CompanyDb, eff.B1Username, eff.B1Password,
+            eff.B1ServiceLayerUrl, db, eff.B1Username, eff.B1Password,
             eff.B1VerifySsl, eff.B1Timeout, _cfg.ExternalIdUdf);
     }
+
+    /// <summary>CompanyDB mặc định của hệ thống (dùng khi user không chọn DB lúc login).</summary>
+    public string DefaultCompanyDb() => GetEffective().B1CompanyDb;
 
     /// <summary>Thử đăng nhập B1 (không lưu). Trả về (ok, thông điệp).</summary>
     public async Task<(bool Ok, string Message)> TestConnectionAsync(ConnTestIn body)

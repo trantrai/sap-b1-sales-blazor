@@ -11,8 +11,21 @@ namespace SalesWeb.Server.Controllers;
 public sealed class AuthController : ApiBaseController
 {
     private readonly AuthService _auth;
+    private readonly ConnService _conn;
 
-    public AuthController(AuthService auth) => _auth = auth;
+    public AuthController(AuthService auth, ConnService conn)
+    {
+        _auth = auth;
+        _conn = conn;
+    }
+
+    /// <summary>Danh sách database được khai báo (public — dùng ở màn Login).</summary>
+    [HttpGet("databases")]
+    public ActionResult<DbListOut> Databases()
+    {
+        var dbs = _conn.GetDatabases();
+        return Ok(new DbListOut { Databases = dbs, Default = _conn.DefaultCompanyDb() });
+    }
 
     [HttpPost("login")]
     public ActionResult<TokenOut> Login([FromBody] LoginIn body)
@@ -20,10 +33,17 @@ public sealed class AuthController : ApiBaseController
         var user = AuthService.Authenticate(body.Username, body.Password);
         if (user is null)
             throw new ApiException(401, "Sai tên đăng nhập hoặc mật khẩu");
-        AuditLog.LogAction(user.Username, "auth.login", "User", user.Username, null, ClientIp);
+        var companyDb = (body.CompanyDb ?? "").Trim();
+        if (string.IsNullOrEmpty(companyDb))
+            companyDb = _conn.DefaultCompanyDb();
+        else if (!_conn.GetDatabases().Any(d =>
+                     d.Code.Equals(companyDb, StringComparison.OrdinalIgnoreCase)))
+            throw new ApiException(400, $"Database '{companyDb}' chưa được khai báo trong hệ thống.");
+        AuditLog.LogAction(user.Username, "auth.login", "User", user.Username,
+            new Dictionary<string, object?> { ["company_db"] = companyDb }, ClientIp);
         return Ok(new TokenOut
         {
-            AccessToken = _auth.CreateToken(user.Username, user.Role),
+            AccessToken = _auth.CreateToken(user.Username, user.Role, companyDb),
             TokenType = "bearer",
         });
     }

@@ -11,7 +11,7 @@ using SalesWeb.Shared.Dtos;
 namespace SalesWeb.Server.Services;
 
 /// <summary>Bản ghi user nội bộ (từ DB).</summary>
-public sealed record AppUser(string Username, string FullName, string Role, int? SalesPersonCode, bool Active);
+public sealed record AppUser(string Username, string FullName, string Role, int? SalesPersonCode, bool Active, string CompanyDb = "");
 
 /// <summary>Auth web: JWT + RBAC. Tài khoản web map tới B1 qua sales_person_code (SlpCode).</summary>
 public sealed class AuthService
@@ -70,12 +70,19 @@ public sealed class AuthService
     }
 
     // ---------------- JWT ----------------
-    public string CreateToken(string username, string role)
+    public string CreateToken(string username, string role, string companyDb = "")
     {
         var handler = new JwtSecurityTokenHandler();
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg.JwtSecret));
+        var claims = new List<Claim>
+        {
+            new("sub", username),
+            new("role", role),
+        };
+        if (!string.IsNullOrWhiteSpace(companyDb))
+            claims.Add(new Claim("b1_db", companyDb.Trim()));
         var token = new JwtSecurityToken(
-            claims: new[] { new Claim("sub", username), new Claim("role", role) },
+            claims: claims,
             expires: DateTime.UtcNow.AddMinutes(_cfg.JwtExpireMinutes),
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
         return handler.WriteToken(token);
@@ -125,6 +132,7 @@ public sealed class AuthService
         Role = u.Role,
         SalesPersonCode = u.SalesPersonCode,
         Active = u.Active,
+        CompanyDb = u.CompanyDb,
     };
 
     public static List<AppUser> ListUsers()
@@ -190,7 +198,13 @@ public sealed class RequireRoleAttribute : Attribute, IAsyncAuthorizationFilter
             return Task.CompletedTask;
         }
 
-        http.Items["AppUser"] = user;
+        // Database user đã chọn lúc đăng nhập (claim b1_db); không có -> DB mặc định
+        var claimDb = principal.FindFirst("b1_db")?.Value;
+        var conn = http.RequestServices.GetService<ConnService>();
+        var companyDb = string.IsNullOrWhiteSpace(claimDb)
+            ? conn?.DefaultCompanyDb() ?? ""
+            : claimDb.Trim();
+        http.Items["AppUser"] = user with { CompanyDb = companyDb };
         return Task.CompletedTask;
     }
 }
