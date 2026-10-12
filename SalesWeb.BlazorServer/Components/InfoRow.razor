@@ -1,0 +1,20 @@
+<div>
+    <div style="font-size:11px; color:var(--fm-text-2); margin-bottom:2px">@Label</div>
+    <div style="font-weight:@(Strong ? "700" : "500")">
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            @(string.IsNullOrEmpty(Value) ? "—" : Value)
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public bool Strong { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

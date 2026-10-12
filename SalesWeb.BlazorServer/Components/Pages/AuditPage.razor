@@ -1,0 +1,398 @@
+@page "/audit"
+@implements IDisposable
+@inject ApiClient Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Giám sát tích hợp — Sale Order</PageTitle>
+
+<div class="fm-card" style="margin-bottom:14px">
+    <h2 class="fm-card__title">Giám sát tích hợp Service Layer</h2>
+    <p class="fm-card__desc" style="margin-bottom:0">
+        Mọi thao tác ghi lên SAP B1 (tạo / sửa / huỷ / đóng đơn) đều được ghi lại
+        kèm request, response, lỗi và thời gian xử lý. Thao tác thất bại có thể
+        <b>thử lại</b> — hệ thống tự kiểm tra idempotency để tránh tạo trùng đơn.
+    </p>
+</div>
+
+<FluentTabs @bind-ActiveTabId="activeTab" Style="margin-bottom:14px">
+    <FluentTab Id="sl" Header="Service Layer"
+               IconStart="@(new Icons.Regular.Size20.CloudLink())" />
+    <FluentTab Id="user" Header="Thao tác người dùng"
+               IconStart="@(new Icons.Regular.Size20.PersonClock())" />
+</FluentTabs>
+
+@if (activeTab == "sl")
+{
+
+@if (msg is not null)
+{
+    <div class="@MsgClass" role="status">
+        <div>@msg.Text</div>
+    </div>
+}
+
+<div class="fm-card">
+    <div class="fm-filterbar">
+        <FluentSelect TValue="string" TOption="KeyValuePair<string,string>"
+                      Items="@opOptions" OptionText="@(o => o.Value)" OptionValue="@(o => o.Key)"
+                      @bind-Value="op" Style="min-width:150px" />
+        <FluentSelect TValue="string" TOption="KeyValuePair<string,string>"
+                      Items="@statusOptions" OptionText="@(o => o.Value)" OptionValue="@(o => o.Key)"
+                      @bind-Value="status" Style="min-width:150px" />
+        <FluentTextInput @bind-Value="q" Placeholder="Mã đơn / external id / người dùng / lỗi…"
+                      Style="min-width:260px" @onkeydown="OnSearchKey" />
+        <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="Load">Làm mới</FluentButton>
+        <div class="fm-filterbar__spacer"></div>
+        <span style="font-size:12px; color:var(--fm-text-2)">@total bản ghi</span>
+        @if (canRetry)
+        {
+            <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsRetryingAll" OnClick="DoRetryAll">
+                @RetryAllLabel
+            </FluentButton>
+        }
+    </div>
+
+    @if (loading)
+    {
+        <div>Đang tải…</div>
+    }
+    else
+    {
+        <div class="fm-table-wrap">
+            <FluentDataGrid EmptyContent="@emptyAudit" Items="@items.AsQueryable()" TGridItem="AuditOut" Style="width:100%">
+                <PropertyColumn Property="@(r => r.Id)" Title="#" />
+                <TemplateColumn Title="Thời gian">
+                    <span style="white-space:nowrap">@context.CreatedAt</span>
+                </TemplateColumn>
+                <TemplateColumn Title="Thao tác">
+                    @(string.IsNullOrEmpty(context.OperationLabel) ? context.Operation : context.OperationLabel)
+                </TemplateColumn>
+                <TemplateColumn Title="Đơn / Tham chiếu">
+                    <span style="font-weight:600">@(string.IsNullOrEmpty(context.EntityKey) ? "—" : context.EntityKey)</span>
+                </TemplateColumn>
+                <PropertyColumn Property="@(r => r.Username)" Title="Người dùng" />
+                <TemplateColumn Title="Kết quả">
+                    @if (context.Success)
+                    {
+                        <span class="fm-chip fm-chip--perm-c">Thành công</span>
+                    }
+                    else
+                    {
+                        <span class="fm-chip fm-chip--perm-d">Thất bại</span>
+                    }
+                    @if (context.RetriedFrom is not null)
+                    {
+                        <div style="font-size:11px; color:var(--fm-text-3)">retry của #@context.RetriedFrom</div>
+                    }
+                    @if (!context.Success && context.Resolved)
+                    {
+                        <div style="font-size:11px; color:var(--fm-green)">đã xử lý ✓</div>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="Thời gian XL" Align="DataGridCellAlignment.End">
+                    <span style="font-variant-numeric:tabular-nums">@context.DurationMs ms</span>
+                </TemplateColumn>
+                <TemplateColumn Title="Thử lại" Align="DataGridCellAlignment.End">
+                    @(context.RetryCount > 0 ? $"{context.RetryCount} lần" : "—")
+                </TemplateColumn>
+                <TemplateColumn Title="Lỗi">
+                    <span style="@ErrorCellStyle(context)" title="@(context.Error ?? context.Note)">
+                        @(context.Success ? (string.IsNullOrEmpty(context.Note) ? "—" : context.Note) : (string.IsNullOrEmpty(context.Error) ? "—" : context.Error))
+                    </span>
+                </TemplateColumn>
+                
+                <TemplateColumn Title="">
+                    <div style="white-space:nowrap">
+                        <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="@(() => OpenDetail(context.Id))">
+                            Chi tiết
+                        </FluentButton>
+                        @if (!context.Success && canRetry && !context.Resolved)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          Disabled="@(busyId == context.Id.ToString())"
+                                          OnClick="@(() => DoRetry(context.Id))">
+                                @(busyId == context.Id.ToString() ? "…" : "Thử lại")
+                            </FluentButton>
+                        }
+                    </div>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </div>
+    }
+    @if (!canRetry)
+    {
+        <p class="fm-hint" style="margin-top:10px">
+            Chỉ tài khoản quản lý (manager/admin) mới được thử lại thao tác thất bại.
+        </p>
+    }
+</div>
+}
+else
+{
+    @* ===== Tab: Thao tác người dùng (B6) ===== *@
+    <div class="fm-card">
+        <div class="fm-filterbar">
+            <FluentTextInput @bind-Value="userQ" Placeholder="Lọc theo người dùng / hành động…"
+                            Style="min-width:260px" @onkeydown="OnUserSearchKey" />
+            <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="LoadUserAudit"
+                          IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">Làm mới</FluentButton>
+            <div class="fm-filterbar__spacer"></div>
+            <span style="font-size:12px; color:var(--fm-text-2)">@userItems.Count bản ghi</span>
+        </div>
+        <div class="fm-table-wrap">
+            <FluentDataGrid EmptyContent="@emptyAudit" Items="@FilteredUserAudit.AsQueryable()"
+                            TGridItem="Dictionary<string,object>" Style="width:100%">
+                <PropertyColumn Property="@(r => Str(r, "created_at"))" Title="Thời gian" Sortable="true" />
+                <PropertyColumn Property="@(r => Str(r, "username"))" Title="Người dùng" Sortable="true" />
+                <PropertyColumn Property="@(r => ActionLabel(Str(r, "action")))" Title="Hành động" />
+                <PropertyColumn Property="@(r => Str(r, "entity"))" Title="Đối tượng" />
+                <PropertyColumn Property="@(r => Str(r, "entity_key"))" Title="Mã" />
+                <PropertyColumn Property="@(r => Str(r, "ip"))" Title="IP" />
+            </FluentDataGrid>
+        </div>
+        <p class="fm-hint" style="margin-top:10px">
+            Ghi nhận: đăng nhập, tạo/sửa đơn hàng, huỷ/đóng đơn, quản trị user, thay đổi cài đặt.
+        </p>
+    </div>
+}
+
+@if (detail is not null)
+{
+    <div class="fm-modal__overlay" @onclick="CloseDetail">
+        <div class="fm-modal" role="dialog" aria-modal="true" aria-label="Chi tiết bản ghi audit" @onclick:stopPropagation="true">
+            <div class="fm-modal__header">
+                <h3 class="fm-modal__title">Bản ghi #@detail.Id — @detail.OperationLabel</h3>
+                <button type="button" class="fm-modal__close" @onclick="CloseDetail" aria-label="Đóng">✕</button>
+            </div>
+            <div class="fm-modal__body">
+                <dl class="fm-detail-list">
+                    <InfoRow Label="Thời gian" Value="@detail.CreatedAt" />
+                    <InfoRow Label="Người dùng" Value="@detail.Username" />
+                    <InfoRow Label="Kết quả" Value="@(detail.Success ? "Thành công" : "Thất bại")" />
+                    <InfoRow Label="Lỗi" Value="@(detail.Error ?? "—")" />
+                    <InfoRow Label="Ghi chú" Value="@(detail.Note ?? "—")" />
+                    <InfoRow Label="Thời gian xử lý" Value="@($"{detail.DurationMs} ms")" />
+                    <InfoRow Label="Số lần thử" Value="@detail.RetryCount.ToString()" />
+                    <InfoRow Label="Đơn liên quan" Value="@(string.IsNullOrEmpty(detail.EntityKey) ? "—" : detail.EntityKey)" />
+                </dl>
+                <h4 class="fm-h4">Request JSON</h4>
+                <pre class="fm-code">@Pretty(detail.RequestJson)</pre>
+                <h4 class="fm-h4">Response JSON</h4>
+                <pre class="fm-code">@Pretty(detail.ResponseJson)</pre>
+            </div>
+            <div class="fm-modal__footer">
+                @if (!detail.Success && canRetry && !detail.Resolved)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsRetryingDetail" OnClick="RetryFromDialog">
+                        @RetryDetailLabel
+                    </FluentButton>
+                }
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="CloseDetail">Đóng</FluentButton>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private RenderFragment emptyAudit = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Không có bản ghi nào.</div>;
+    private record Msg(string Text, bool IsError);
+
+    private static string ErrorCellStyle(AuditOut r) =>
+        "max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; color:" +
+        (r.Success ? "var(--fm-text-3)" : "var(--fm-red)");
+
+    private string MsgClass => msg is not null && msg.IsError
+        ? "fm-alert fm-alert--error"
+        : "fm-alert fm-alert--success";
+
+    private static readonly List<KeyValuePair<string, string>> opOptions = new()
+    {
+        new("", "Tất cả thao tác"),
+        new("order.create", "Tạo đơn"),
+        new("order.update", "Cập nhật đơn"),
+        new("order.cancel", "Huỷ đơn"),
+        new("order.close", "Đóng đơn"),
+    };
+    private static readonly List<KeyValuePair<string, string>> statusOptions = new()
+    {
+        new("", "Tất cả kết quả"),
+        new("ok", "Thành công"),
+        new("fail", "Thất bại"),
+    };
+
+    private List<AuditOut> items = new();
+    private int total;
+    private bool loading = true;
+    private string? op = "";
+    private string? status = "";
+    private string? q;
+    private AuditDetailOut? detail;
+    private Msg? msg;
+    private string? busyId;
+    private bool canRetry;
+    private bool IsRetryingAll => busyId == "all";
+    private string RetryAllLabel => IsRetryingAll ? "Đang thử lại…" : "Thử lại tất cả thất bại";
+    private bool IsRetryingDetail => detail is not null && busyId == detail.Id.ToString();
+    private string RetryDetailLabel => IsRetryingDetail ? "Đang thử lại…" : "Thử lại thao tác này";
+    private System.Threading.Timer? timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // P1-1: integration audit chỉ manager+ mới được xem
+        var authState = await Auth.GetAuthenticationStateAsync();
+        if (!Auth.HasRole("manager"))
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+        canRetry = Auth.HasRole("manager");
+        await Load();
+        timer = new System.Threading.Timer(async _ =>
+            await InvokeAsync(async () => { await Load(); StateHasChanged(); }),
+            null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            var data = await Api.ListAuditAsync(op, status, q, 100);
+            items = data?.Items ?? new();
+            total = data?.Total ?? 0;
+        }
+        catch (ApiException ex)
+        {
+            if (ex.Status == 401) { await Auth.LogoutAsync(); Nav.NavigateTo("/login"); return; }
+            msg = new Msg(ex.Message, true);
+        }
+        finally { loading = false; }
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Load();
+    }
+
+    // ---------- Tab "Thao tác người dùng" (B6) ----------
+    private string _activeTab = "sl";
+    private string activeTab
+    {
+        get => _activeTab;
+        set
+        {
+            _activeTab = value;
+            if (value == "user" && userItems.Count == 0)
+                _ = LoadUserAudit();
+        }
+    }
+    private List<Dictionary<string, object>> userItems = new();
+    private string? userQ;
+
+    private IEnumerable<Dictionary<string, object>> FilteredUserAudit
+    {
+        get
+        {
+            var q = (userQ ?? "").Trim();
+            if (string.IsNullOrEmpty(q)) return userItems;
+            return userItems.Where(r =>
+                Str(r, "username").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                ActionLabel(Str(r, "action")).Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                Str(r, "entity_key").Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private async Task LoadUserAudit()
+    {
+        try { userItems = await Api.ListUserAuditAsync() ?? new(); }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        StateHasChanged();
+    }
+
+    private async Task OnUserSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") StateHasChanged();
+    }
+
+    private static string Str(Dictionary<string, object> r, string key)
+    {
+        if (!r.TryGetValue(key, out var v) || v is null) return "";
+        // JSON snake_case → key có thể ở dạng camelCase
+        return v.ToString() ?? "";
+    }
+
+    private static string ActionLabel(string action) => action switch
+    {
+        "auth.login" => "Đăng nhập",
+        "auth.refresh" => "Gia hạn phiên",
+        "order.create" => "Tạo đơn hàng",
+        "order.update" => "Sửa đơn hàng",
+        "order.cancel" => "Huỷ đơn hàng",
+        "order.close" => "Đóng đơn hàng",
+        "user.create" => "Tạo người dùng",
+        "user.update" => "Sửa người dùng",
+        "settings.connection" => "Đổi cấu hình kết nối",
+        "settings.discount_limits" => "Đổi ngưỡng chiết khấu",
+        "settings.databases" => "Đổi danh sách database",
+        _ => action,
+    };
+
+    private async Task DoRetry(int id)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Thử lại thao tác #{id}?")) return;
+        busyId = id.ToString(); msg = null;
+        try
+        {
+            var r = await Api.RetryAuditAsync(id);
+            msg = new Msg($"Thử lại thành công: {r?.Operation} — {r?.EntityKey}", false);
+            await Load();
+        }
+        catch (ApiException ex) { msg = new Msg($"Thử lại thất bại: {ex.Message}", true); }
+        finally { busyId = null; }
+    }
+
+    private async Task DoRetryAll()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "Thử lại TẤT CẢ các thao tác đang thất bại?")) return;
+        busyId = "all"; msg = null;
+        try
+        {
+            var r = await Api.RetryAllAuditAsync();
+            msg = new Msg(
+                $"Đã thử lại {r?.Retried}: thành công {r?.Ok.Count}, thất bại {r?.Fail.Count}",
+                (r?.Fail.Count ?? 0) > 0);
+            await Load();
+        }
+        catch (ApiException ex) { msg = new Msg($"Thử lại thất bại: {ex.Message}", true); }
+        finally { busyId = null; }
+    }
+
+    private async Task OpenDetail(int id)
+    {
+        try { detail = await Api.GetAuditDetailAsync(id); }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+    }
+
+    private void CloseDetail() => detail = null;
+
+    private async Task RetryFromDialog()
+    {
+        if (detail is null) return;
+        var id = detail.Id;
+        CloseDetail();
+        await DoRetry(id);
+    }
+
+    private static string Pretty(System.Text.Json.JsonElement el)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Serialize(el,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch { return el.GetRawText(); }
+    }
+
+    public void Dispose() => timer?.Dispose();
+}

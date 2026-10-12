@@ -1,0 +1,301 @@
+@page "/users"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Người dùng &amp; phân quyền — Sale Order</PageTitle>
+
+@if (msg is not null)
+{
+    <div class="@MsgClass" role="status">
+        <div>@msg.Text</div>
+    </div>
+}
+
+<div class="fm-card" style="margin-bottom:14px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+        <h2 class="fm-card__title" style="margin:0">Người dùng (@users.Count)</h2>
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="() => OpenDialog(null)"
+                      IconStart="@(new Icons.Regular.Size20.PersonAdd())">
+            Thêm người dùng
+        </FluentButton>
+    </div>
+    <div class="fm-table-wrap">
+        <FluentDataGrid EmptyContent="@emptyUsers" Items="@users.AsQueryable()" TGridItem="UserOut" Style="width:100%">
+            <TemplateColumn Title="Tên đăng nhập">
+                <span style="font-weight:600">@context.Username</span>
+            </TemplateColumn>
+            <TemplateColumn Title="Họ tên">
+                @(string.IsNullOrEmpty(context.FullName) ? "—" : context.FullName)
+            </TemplateColumn>
+            <TemplateColumn Title="Vai trò">
+                <span class="fm-chip @RoleChip(context.Role)">@context.Role</span>
+            </TemplateColumn>
+            <TemplateColumn Title="Mã NVKD">
+                @(context.SalesPersonCode?.ToString() ?? "—")
+            </TemplateColumn>
+            <TemplateColumn Title="Trạng thái">
+                @if (context.Active)
+                {
+                    <span class="fm-chip fm-chip--perm-c">Hoạt động</span>
+                }
+                else
+                {
+                    <span class="fm-chip fm-chip--closed">Đã khoá</span>
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="">
+                <div style="white-space:nowrap; text-align:right">
+                    <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="@(() => OpenDialog(context))">Sửa</FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@(() => ToggleActive(context))">
+                        @(context.Active ? "Khoá" : "Mở khoá")
+                    </FluentButton>
+                </div>
+            </TemplateColumn>
+        </FluentDataGrid>
+    </div>
+</div>
+
+@if (matrix is not null)
+{
+    <div class="fm-card">
+        <h2 class="fm-card__title">Ma trận phân quyền RBAC</h2>
+        <p class="fm-card__desc">Quyền kế thừa: vai trò cao hơn có mọi quyền của vai trò thấp hơn</p>
+        <div class="fm-table-wrap">
+            <table class="fm-table fm-perm-matrix">
+                <thead>
+                    <tr>
+                        <th>Quyền</th>
+                        @foreach (var r in matrix.Roles)
+                        {
+                            <th>@r.Label</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in matrix.Permissions)
+                    {
+                        <tr>
+                            <td>@p.Label</td>
+                            @foreach (var r in matrix.Roles)
+                            {
+                                <td>
+                                    @if (p.Roles.Contains(r.Code))
+                                    {
+                                        <span class="fm-chip fm-chip--perm-c">✓</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--fm-text-3)">—</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (dialogOpen)
+{
+    <div class="fm-modal__overlay" @onclick="CloseDialog">
+        <div class="fm-modal" role="dialog" aria-modal="true" aria-label="Người dùng"
+             @onclick:stopPropagation="true">
+            <div class="fm-modal__head">
+                <b>@(editingUser is null ? "Thêm người dùng" : $"Sửa: {editingUser.Username}")</b>
+                <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="CloseDialog">Đóng</FluentButton>
+            </div>
+            <form @onsubmit="SaveDialog" @onsubmit:preventDefault="true">
+                <div class="fm-modal__body">
+                    @if (!string.IsNullOrEmpty(dlgError))
+                    {
+                        <div class="fm-alert fm-alert--error" role="alert"><div>@dlgError</div></div>
+                    }
+                    @if (editingUser is null)
+                    {
+                        <div class="fm-field">
+                            <label class="fm-label">Tên đăng nhập<span class="fm-label__req">*</span></label>
+                            <FluentTextInput @bind-Value="dlgUsername" Required="true" MinLength="3"
+                                             AutoComplete="off" Style="width:100%" />
+                        </div>
+                    }
+                    <div class="fm-field">
+                        <label class="fm-label">Mật khẩu@(editingUser is null ? "*" : "")</label>
+                        <FluentTextInput TextInputType="TextInputType.Password"
+                                         @bind-Value="dlgPassword" Required="@(editingUser is null)"
+                                         MinLength="6"
+                                         Placeholder="@(editingUser is null ? "" : "Để trống để giữ nguyên")"
+                                         AutoComplete="new-password" Style="width:100%" />
+                    </div>
+                    <div class="fm-field">
+                        <label class="fm-label">Họ tên</label>
+                        <FluentTextInput @bind-Value="dlgFullName" Style="width:100%" />
+                    </div>
+                    <div class="fm-form-grid">
+                        <div class="fm-field">
+                            <label class="fm-label">Vai trò<span class="fm-label__req">*</span></label>
+                            <FluentSelect TValue="string" TOption="KeyValuePair<string,string>"
+                                          Items="@roleOptions" OptionText="@(o => o.Value)" OptionValue="@(o => o.Key)"
+                                          @bind-Value="dlgRole"
+                                          Disabled="@(editingUser is not null && editingUser.Username == Auth.User?.Username)" />
+                            @if (editingUser is not null && editingUser.Username == Auth.User?.Username)
+                            {
+                                <div class="fm-hint">Không thể tự đổi vai trò của chính mình</div>
+                            }
+                        </div>
+                        <div class="fm-field">
+                            <label class="fm-label">Mã NVKD (SlpCode)</label>
+                            <FluentSelect TValue="int?" TOption="SalesPersonOut"
+                                          Items="@salesPersons"
+                                          OptionText="@(s => $"{s.Code} — {s.Name}")"
+                                          OptionValue="@(s => (int?)s.Code)"
+                                          @bind-Value="dlgSlp" Placeholder="— Không gán —" />
+                            <div class="fm-hint">Gán để user chỉ thấy đơn của NVKD đó</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:0 20px 18px; display:flex; justify-content:flex-end; gap:8px">
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="CloseDialog">Huỷ</FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Primary" Type="ButtonType.Submit"
+                                  Disabled="dlgBusy" Loading="dlgBusy">
+                        @(dlgBusy ? "Đang lưu…" : "Lưu")
+                    </FluentButton>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    private RenderFragment emptyUsers = @<div style="padding:18px;text-align:center;color:var(--fm-text-2)">Không có người dùng nào.</div>;
+    private record Msg(string Text, bool IsError);
+
+    private string MsgClass => msg is not null && msg.IsError
+        ? "fm-alert fm-alert--error"
+        : "fm-alert fm-alert--success";
+
+    private static readonly List<KeyValuePair<string, string>> roleOptions = new()
+    {
+        new("viewer", "Người xem (viewer)"),
+        new("sales", "Nhân viên kinh doanh (sales)"),
+        new("manager", "Quản lý (manager)"),
+        new("admin", "Quản trị viên (admin)"),
+    };
+
+    private List<UserOut> users = new();
+    private List<SalesPersonOut> salesPersons = new();
+    private RoleMatrix? matrix;
+    private bool loading = true;
+    private Msg? msg;
+
+    private bool dialogOpen;
+    private UserOut? editingUser;
+    private string dlgUsername = "";
+    private string? dlgPassword;
+    private string? dlgFullName;
+    private string? dlgRole = "viewer";
+    private int? dlgSlp;
+    private string dlgError = "";
+    private bool dlgBusy;
+
+    private static string RoleChip(string r) => r switch
+    {
+        "admin" => "fm-chip--open",
+        "manager" => "fm-chip--role",
+        "sales" => "fm-chip--perm-c",
+        _ => "fm-chip--closed",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (!Auth.HasRole("admin")) { Nav.NavigateTo("/"); return; }
+        await Load();
+        try { salesPersons = await Api.ListSalesPersonsAsync() ?? new(); }
+        catch { /* bỏ qua */ }
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            users = await Api.ListUsersAsync() ?? new();
+            matrix = await Api.GetRoleMatrixAsync();
+        }
+        catch (ApiException ex)
+        {
+            if (ex.Status == 401) { await Auth.LogoutAsync(); Nav.NavigateTo("/login"); return; }
+            msg = new Msg(ex.Message, true);
+        }
+        finally { loading = false; }
+    }
+
+    private void OpenDialog(UserOut? u)
+    {
+        editingUser = u;
+        dlgUsername = u?.Username ?? "";
+        dlgPassword = "";
+        dlgFullName = u?.FullName;
+        dlgRole = u?.Role ?? "viewer";
+        dlgSlp = u?.SalesPersonCode;
+        dlgError = "";
+        dialogOpen = true;
+    }
+
+    private void CloseDialog() => dialogOpen = false;
+
+    private async Task SaveDialog()
+    {
+        dlgBusy = true; dlgError = "";
+        try
+        {
+            if (editingUser is null)
+            {
+                await Api.CreateUserAsync(new UserCreate
+                {
+                    Username = dlgUsername,
+                    Password = dlgPassword ?? "",
+                    FullName = dlgFullName,
+                    Role = dlgRole ?? "viewer",
+                    SalesPersonCode = dlgSlp,
+                });
+            }
+            else
+            {
+                await Api.UpdateUserAsync(editingUser.Username, new UserUpdate
+                {
+                    Password = string.IsNullOrEmpty(dlgPassword) ? null : dlgPassword,
+                    FullName = dlgFullName,
+                    Role = dlgRole,
+                    SalesPersonCode = dlgSlp,
+                });
+            }
+            dialogOpen = false;
+            msg = new Msg("Đã lưu người dùng", false);
+            await Load();
+        }
+        catch (ApiException ex) { dlgError = ex.Message; }
+        finally { dlgBusy = false; }
+    }
+
+    private async Task ToggleActive(UserOut u)
+    {
+        if (u.Username == Auth.User?.Username)
+        {
+            msg = new Msg("Không thể khoá chính tài khoản của mình", true);
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm",
+            $"{(u.Active ? "Khoá" : "Mở khoá")} tài khoản {u.Username}?")) return;
+        try
+        {
+            await Api.UpdateUserAsync(u.Username, new UserUpdate { Active = !u.Active });
+            msg = new Msg($"Đã {(u.Active ? "khoá" : "mở khoá")} {u.Username}", false);
+            await Load();
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+    }
+}

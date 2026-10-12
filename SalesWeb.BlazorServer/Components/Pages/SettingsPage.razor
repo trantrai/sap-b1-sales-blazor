@@ -1,0 +1,330 @@
+@page "/settings"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Cài đặt kết nối — Sale Order</PageTitle>
+
+@if (loading)
+{
+    <div>Đang tải…</div>
+}
+else
+{
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Cài đặt kết nối Service Layer</h2>
+        <p class="fm-card__desc" style="margin-bottom:0">
+            Chọn chạy demo bằng dữ liệu giả hoặc kết nối tới SAP Business One thật qua
+            Service Layer. Thay đổi được áp dụng ngay không cần khởi động lại server.
+            @(fromDb
+                ? " Cấu hình hiện tại đang lấy từ cơ sở dữ liệu (ghi đè file .env)."
+                : " Cấu hình hiện tại đang lấy từ file .env (chưa lưu qua giao diện).")
+        </p>
+    </div>
+
+    @if (msg is not null)
+    {
+        <div class="@MsgClass" role="status">
+            <div>@msg.Text</div>
+        </div>
+    }
+
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Chế độ kết nối</h2>
+        <FluentRadioGroup TValue="string" @bind-Value="modeMock" Orientation="Orientation.Horizontal">
+            <FluentRadio TValue="string" Value="@("mock")" Label="Demo (dữ liệu giả)" />
+            <FluentRadio TValue="string" Value="@("live")" Label="SAP B1 thật" />
+        </FluentRadioGroup>
+        <div class="fm-hint" style="margin-top:6px">
+            @(IsMock ? "Chạy thử giao diện, không cần SAP B1 thật"
+                     : "Kết nối Service Layer tới công ty thật")
+        </div>
+    </div>
+
+    <div class="fm-card" style="margin-bottom:14px; opacity:@(IsMock ? "0.55" : "1")">
+        <h2 class="fm-card__title">Thông tin Service Layer</h2>
+        <p class="fm-card__desc">Chỉ áp dụng khi chọn chế độ "SAP B1 thật"</p>
+        <div class="fm-form-grid">
+            <div class="fm-field">
+                <label class="fm-label">Service Layer URL</label>
+                <FluentTextInput @bind-Value="form.B1ServiceLayerUrl" Disabled="@IsMock"
+                                 Placeholder="https://b1-server:50000/b1s/v2" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">CompanyDB (mặc định hệ thống)</label>
+                <FluentSelect TValue="string" TOption="DbEntry"
+                              Items="@dbList" OptionText="@(d => string.IsNullOrWhiteSpace(d.Name) || d.Name == d.Code ? d.Code : $"{d.Name} ({d.Code})")" OptionValue="@(d => d.Code)"
+                              @bind-Value="form.B1CompanyDb" Disabled="@IsMock" Style="width:100%" />
+                <div class="fm-hint">Chọn từ danh sách database đã khai báo bên dưới</div>
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Tên đăng nhập (kỹ thuật)</label>
+                <FluentTextInput @bind-Value="form.B1Username" Disabled="@IsMock"
+                                 AutoComplete="off" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Mật khẩu</label>
+                <FluentTextInput TextInputType="TextInputType.Password" @bind-Value="form.B1Password"
+                                 Disabled="@IsMock" AutoComplete="new-password"
+                                 Placeholder="••••••••" Style="width:100%" />
+                <div class="fm-hint">Để trống để giữ nguyên mật khẩu đã lưu (được mã hoá trong DB)</div>
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Timeout (giây)</label>
+                <FluentNumberInput @bind-Value="timeout" Min="5" Max="120"
+                                   Disabled="@IsMock" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Kiểm tra chứng chỉ SSL</label>
+                <FluentSelect TValue="bool" TOption="KeyValuePair<bool,string>"
+                              Items="@sslOptions" OptionText="@(o => o.Value)" OptionValue="@(o => o.Key)"
+                              @bind-Value="form.B1VerifySsl" Disabled="@IsMock" />
+            </div>
+        </div>
+        <div class="fm-alert fm-alert--info" style="margin-top:6px; margin-bottom:0">
+            <div>
+                Nên dùng tài khoản kỹ thuật (service account) riêng cho tích hợp, không dùng
+                tài khoản manager cá nhân. Mật khẩu được mã hoá trước khi lưu vào DB local.
+            </div>
+        </div>
+    </div>
+
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Danh sách database truy cập</h2>
+        <p class="fm-card__desc">Khai báo các CompanyDB SAP B1 được phép truy cập. Danh sách này hiện ở màn Đăng nhập để user chọn database làm việc.</p>
+        @if (dbList.Count > 0)
+        {
+            <div class="fm-table-wrap">
+            <table class="fm-table">
+                <thead>
+                    <tr><th style="text-align:left">Mã database</th><th style="text-align:left">Tên hiển thị</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in dbList)
+                    {
+                        <tr>
+                            <td><b>@d.Code</b>@(d.Code == dbDefault ? " (mặc định)" : "")</td>
+                            <td>@d.Name</td>
+                            <td style="text-align:right">
+                                <FluentButton Appearance="ButtonAppearance.Subtle" Disabled="@(busy is not null || dbList.Count <= 1)"
+                                              OnClick="@(() => dbList.Remove(d))" Title="Xóa">
+                                    Xóa
+                                </FluentButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        }
+        <div class="fm-form-grid" style="margin-top:10px">
+            <div class="fm-field">
+                <label class="fm-label">Mã database mới</label>
+                <FluentTextInput @bind-Value="newDbCode" Placeholder="VD: SBODEMO_VN" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Tên hiển thị</label>
+                <FluentTextInput @bind-Value="newDbName" Placeholder="VD: Demo VN" Style="width:100%" />
+            </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:10px">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="AddDb"
+                IconStart="@(new Icons.Regular.Size20.Add())">
+                + Thêm database
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveDbs"
+                IconStart="@(new Icons.Regular.Size20.Save())">
+                @(busy == "dbs" ? "Đang lưu…" : "Lưu danh sách database")
+            </FluentButton>
+        </div>
+        <div class="fm-hint" style="margin-top:6px">
+            Database mặc định của hệ thống (CompanyDB ở trên) phải nằm trong danh sách này.
+        </div>
+    </div>
+
+    <div class="fm-card" style="margin-bottom:14px">
+        <h2 class="fm-card__title">Ngưỡng chiết khấu theo vai trò</h2>
+        <p class="fm-card__desc">Chiết khấu tối đa (%) mỗi vai trò được áp cho đơn hàng. Vai trò admin không giới hạn.</p>
+        <div class="fm-form-grid">
+            <div class="fm-field">
+                <label class="fm-label">Sales tối đa (%)</label>
+                <FluentNumberInput @bind-Value="discSales" Min="0" Max="100" Style="width:100%" />
+            </div>
+            <div class="fm-field">
+                <label class="fm-label">Manager tối đa (%)</label>
+                <FluentNumberInput @bind-Value="discManager" Min="0" Max="100" Style="width:100%" />
+            </div>
+        </div>
+        <div style="margin-top:10px">
+            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoSaveLimits"
+                IconStart="@(new Icons.Regular.Size20.Save())">
+                @(busy == "limits" ? "Đang lưu…" : "Lưu ngưỡng chiết khấu")
+            </FluentButton>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:10px">
+        <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@(busy is not null)" OnClick="DoTest"
+                IconStart="@(new Icons.Regular.Size20.PlugConnected())">
+            @(busy == "test" ? "Đang kiểm tra…" : "Kiểm tra kết nối")
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@(busy is not null)" OnClick="DoSave"
+                IconStart="@(new Icons.Regular.Size20.Save())">
+            @(busy == "save" ? "Đang lưu…" : "Lưu & áp dụng ngay")
+        </FluentButton>
+    </div>
+}
+
+@code {
+    private record Msg(string Text, bool IsError);
+
+    private string MsgClass => msg is not null && msg.IsError
+        ? "fm-alert fm-alert--error"
+        : "fm-alert fm-alert--success";
+
+    private static readonly List<KeyValuePair<bool, string>> sslOptions = new()
+    {
+        new(true, "Bật (khuyên dùng)"),
+        new(false, "Tắt (B1 dùng cert tự ký)"),
+    };
+
+    private ConnSettingsIn form = new();
+    private double timeout = 30;
+    private bool fromDb;
+    private bool loading = true;
+    private string? busy; // "test" | "save" | "limits" | "dbs"
+    private Msg? msg;
+
+    private double discSales = 10;
+    private double discManager = 20;
+
+    private List<DbEntry> dbList = new();
+    private string dbDefault = "";
+    private string newDbCode = "";
+    private string newDbName = "";
+
+    private bool IsMock => modeMock == "mock";
+    private string modeMock = "mock";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.GetAuthenticationStateAsync();
+        if (!Auth.HasRole("admin")) { Nav.NavigateTo("/"); return; }
+        try
+        {
+            var d = await Api.GetConnSettingsAsync();
+            if (d is not null)
+            {
+                modeMock = d.B1Mock ? "mock" : "live";
+                form = new ConnSettingsIn
+                {
+                    B1Mock = d.B1Mock,
+                    B1ServiceLayerUrl = d.B1ServiceLayerUrl,
+                    B1CompanyDb = d.B1CompanyDb,
+                    B1Username = d.B1Username,
+                    B1Password = "", // không hiện mật khẩu thật; để trống = giữ nguyên
+                    B1VerifySsl = d.B1VerifySsl,
+                };
+                timeout = d.B1Timeout;
+                fromDb = d.FromDb;
+            }
+            var lim = await Api.GetDiscountLimitsAsync();
+            if (lim is not null) { discSales = lim.Sales; discManager = lim.Manager; }
+            var dbs = await Api.GetDbListAsync();
+            if (dbs is not null)
+            {
+                dbList = dbs.Databases;
+                dbDefault = dbs.Default;
+                // Mặc định bind theo database user đã chọn lúc đăng nhập
+                var loginDb = Auth.User?.CompanyDb;
+                form.B1CompanyDb = !string.IsNullOrEmpty(loginDb)
+                    && dbList.Any(d => d.Code.Equals(loginDb, StringComparison.OrdinalIgnoreCase))
+                    ? loginDb : dbDefault;
+            }
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { loading = false; }
+    }
+
+    private async Task DoTest()
+    {
+        busy = "test"; msg = null;
+        try
+        {
+            var r = await Api.TestConnSettingsAsync(new ConnTestIn
+            {
+                B1Mock = IsMock,
+                B1ServiceLayerUrl = form.B1ServiceLayerUrl,
+                B1CompanyDb = form.B1CompanyDb,
+                B1Username = form.B1Username,
+                B1Password = form.B1Password,
+                B1VerifySsl = form.B1VerifySsl,
+                Timeout = 10,
+            });
+            msg = new Msg(r?.Message ?? "", !(r?.Ok ?? false));
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+
+    private void AddDb()
+    {
+        var code = (newDbCode ?? "").Trim();
+        if (string.IsNullOrEmpty(code)) { msg = new Msg("Nhập mã database trước khi thêm.", true); return; }
+        if (dbList.Any(d => d.Code.Equals(code, StringComparison.OrdinalIgnoreCase)))
+        { msg = new Msg($"Database '{code}' đã có trong danh sách.", true); return; }
+        dbList.Add(new DbEntry { Code = code, Name = string.IsNullOrWhiteSpace(newDbName) ? code : newDbName.Trim() });
+        newDbCode = ""; newDbName = ""; msg = null;
+    }
+
+    private async Task DoSaveDbs()
+    {
+        busy = "dbs"; msg = null;
+        try
+        {
+            var r = await Api.SaveDbListAsync(dbList);
+            if (r is not null) { dbList = r.Databases; dbDefault = r.Default; }
+            msg = new Msg($"Đã lưu {dbList.Count} database. Danh sách mới hiện ở màn Đăng nhập.", false);
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+
+    private async Task DoSaveLimits()
+    {        busy = "limits"; msg = null;
+        try
+        {
+            var r = await Api.SaveDiscountLimitsAsync(new DiscountLimitsIn
+            {
+                Sales = discSales,
+                Manager = discManager,
+            });
+            if (r is not null) { discSales = r.Sales; discManager = r.Manager; }
+            msg = new Msg($"Đã lưu ngưỡng chiết khấu: sales ≤ {discSales}%, manager ≤ {discManager}%.", false);
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+
+    private async Task DoSave()
+    {
+        if (!IsMock && !await JS.InvokeAsync<bool>("confirm",
+            "Lưu và chuyển sang kết nối SAP B1 thật? Hệ thống sẽ ngắt client hiện tại và kết nối lại ngay."))
+            return;
+        busy = "save"; msg = null;
+        try
+        {
+            form.B1Mock = IsMock;
+            form.B1Timeout = timeout;
+            var r = await Api.SaveConnSettingsAsync(form);
+            msg = new Msg(
+                $"Đã lưu và áp dụng. Chế độ hiện tại: {(r?.Mode == "mock" ? "Demo (dữ liệu giả)" : "B1 thật")}.{(string.IsNullOrEmpty(r?.Hint) ? "" : " " + r.Hint)}",
+                false);
+            form.B1Password = "";
+            fromDb = true;
+        }
+        catch (ApiException ex) { msg = new Msg(ex.Message, true); }
+        finally { busy = null; }
+    }
+}
