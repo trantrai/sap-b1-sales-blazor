@@ -132,6 +132,15 @@ function initSchema(db: Database.Database) {
       "INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, 'Administrator', 'admin')"
     ).run(adminUser, hashPassword(adminPass));
   }
+
+  // Seed danh sách CompanyDB lần đầu (hiển thị ở màn Login)
+  const dbList = db.prepare("SELECT value FROM app_settings WHERE key = 'b1_databases'").get();
+  if (!dbList) {
+    const defaultDb = process.env.B1_COMPANY_DB || 'SBODEMO_VN';
+    db.prepare(
+      `INSERT INTO app_settings (key, value, updated_at) VALUES ('b1_databases', ?, datetime('now'))`
+    ).run(JSON.stringify([{ code: defaultDb, name: 'Demo VN' }]));
+  }
 }
 
 // Ghi audit log thao tác trên web (bảng audit_logs)
