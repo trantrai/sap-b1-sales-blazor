@@ -1,36 +1,168 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SAP B1 Sales Order — Next.js Full-Stack
 
-## Getting Started
+Hệ thống quản lý đơn hàng bán SAP Business One (HANA), xây dựng bằng **Next.js 16** full-stack: App Router + TypeScript + Tailwind CSS v4 + SQLite + JWT.
 
-First, run the development server:
+## Tính năng
+
+- **11 màn hình:** Đăng nhập, Dashboard, Danh sách đơn, Tạo đơn, Chi tiết đơn, Đồng bộ dữ liệu, Giám sát tích hợp, Audit, Người dùng & phân quyền (ma trận RBAC), Cài đặt kết nối
+- **API đầy đủ:** auth (login/refresh/logout), orders (CRUD + stats + export Excel), masterdata (KH/hàng hoá), sync, audit, settings, users
+- **Tích hợp SAP B1:** Service Layer client (mock + live), idempotency, retry
+- **Design system:** sidebar navy `#12305a`, menu active vàng `#ffc928`, nút blue `#1d4e89`, font Plus Jakarta Sans
+
+## Yêu cầu
+
+- Node.js 18+
+- npm
+
+## Cài đặt
+
+```bash
+git clone https://github.com/trantrai/sap-b1-sales-nextjs.git
+cd sap-b1-sales-nextjs
+npm install
+```
+
+## Chạy development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở http://localhost:3000 — đăng nhập `admin` / `admin123`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Biến môi trường
 
-To learn more about Next.js, take a look at the following resources:
+Tạo file `.env.local`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+JWT_SECRET=your-secret-key-min-32-chars
+B1_MOCK=true
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Biến | Mặc định | Mô tả |
+|------|----------|-------|
+| `JWT_SECRET` | `dev-secret-change-me` | Khóa ký JWT (bắt buộc đổi ở production) |
+| `B1_MOCK` | `true` | `true` = dùng dữ liệu giả, `false` = kết nối SAP B1 thật |
 
-## Deploy on Vercel
+## Deploy lên Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Cách 1: Vercel Dashboard (khuyến nghị)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Vào https://vercel.com → **Add New Project**
+2. **Import** repo `trantrai/sap-b1-sales-nextjs`
+3. Framework Preset: **Next.js** (tự nhận)
+4. Thêm biến môi trường:
+   - `JWT_SECRET` = chuỗi ngẫu nhiên ≥ 32 ký tự
+   - `B1_MOCK` = `true`
+5. Nhấn **Deploy**
+
+### Cách 2: Vercel CLI
+
+```bash
+npm i -g vercel
+vercel login
+vercel --prod
+```
+
+### Lưu ý khi deploy
+
+- **Database:** App dùng `better-sqlite3` (file local). Trên Vercel, filesystem là ephemeral — dữ liệu sẽ mất khi redeploy. Để persist, chuyển sang **Vercel Postgres** hoặc **Turso**:
+  ```bash
+  # Vercel Postgres
+  vercel storage create postgres
+  ```
+  Sau đó cập nhật `src/lib/db.ts` để dùng driver tương ứng.
+- **Build command:** `npm run build` (mặc định)
+- **Output directory:** `.next` (mặc định)
+
+## Deploy bằng Docker
+
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/public ./public
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+```bash
+docker build -t sap-b1-sales-nextjs .
+docker run -p 3000:3000 \
+  -e JWT_SECRET=your-secret \
+  -e B1_MOCK=true \
+  sap-b1-sales-nextjs
+```
+
+## Cấu trúc project
+
+```
+src/
+├── app/
+│   ├── api/              # API routes
+│   │   ├── auth/         # login, refresh, logout, databases, users
+│   │   ├── orders/       # CRUD, stats, export, cancel, close
+│   │   ├── masterdata/   # customers, items
+│   │   ├── sync/         # status, all, audit-log, retry-failed
+│   │   ├── audit/        # audit logs
+│   │   └── settings/     # settings, databases, test-connection
+│   ├── dashboard/        # Trang dashboard
+│   ├── login/            # Trang đăng nhập
+│   ├── orders/           # Danh sách, tạo mới, chi tiết
+│   ├── sync/             # Đồng bộ dữ liệu
+│   ├── monitor/          # Giám sát tích hợp
+│   ├── audit/            # Audit người dùng
+│   ├── users/            # Quản lý người dùng + RBAC
+│   ├── settings/         # Cài đặt kết nối
+│   ├── layout.tsx
+│   └── globals.css       # Design tokens + Tailwind v4 theme
+├── components/
+│   └── Layout.tsx        # Sidebar navy + topbar
+└── lib/
+    ├── db.ts             # SQLite (better-sqlite3)
+    ├── auth.ts           # JWT (jose)
+    └── b1-client.ts      # SAP B1 Service Layer client
+```
+
+## API Endpoints
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/api/auth/login` | Đăng nhập, trả về JWT |
+| POST | `/api/auth/refresh` | Refresh token |
+| POST | `/api/auth/logout` | Đăng xuất |
+| GET | `/api/auth/databases` | Danh sách CompanyDB |
+| GET | `/api/auth/users` | Danh sách người dùng |
+| GET | `/api/orders` | Danh sách đơn (filter: status, card_code, doc_num) |
+| POST | `/api/orders` | Tạo đơn mới |
+| GET | `/api/orders/[id]` | Chi tiết đơn |
+| POST | `/api/orders/[id]/cancel` | Hủy đơn |
+| POST | `/api/orders/[id]/close` | Đóng đơn |
+| GET | `/api/orders/stats` | Thống kê dashboard |
+| GET | `/api/orders/export` | Xuất Excel |
+| GET | `/api/masterdata/customers` | Tra cứu khách hàng |
+| GET | `/api/masterdata/items` | Tra cứu hàng hoá |
+| GET | `/api/sync/status` | Trạng thái đồng bộ |
+| POST | `/api/sync/all` | Đồng bộ tất cả |
+| GET | `/api/audit` | Nhật ký audit |
+| GET/PUT | `/api/settings` | Cài đặt |
+
+## Giấy phép
+
+MIT
