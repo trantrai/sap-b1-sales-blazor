@@ -3,7 +3,7 @@
 import frappe
 
 from sap_b1_sales.b1_client import get_b1_client
-from sap_b1_sales.integration.doctype.b1_connection_settings.b1_connection_settings import (
+from sap_b1_sales.b1_integration.doctype.b1_connection_settings.b1_connection_settings import (
     get_connection_settings,
 )
 from sap_b1_sales.utils import customer_out, item_out

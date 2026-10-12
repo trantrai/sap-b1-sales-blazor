@@ -1,6 +1,6 @@
 """API xác thực — tương đương AuthController.cs (.NET).
 
-Endpoint Frappe: /api/method/sap_b1_sales.integration.api.auth.<ten_ham>
+Endpoint Frappe: /api/method/sap_b1_sales.b1_integration.api.auth.<ten_ham>
 
 Xác thực: Frappe dùng session cookie hoặc token (Authorization: token api_key:api_secret).
 Hàm login() bên dưới xác thực user rồi cấp API key/secret để client dùng tiếp.
@@ -10,7 +10,7 @@ import frappe
 
 
 def _databases():
-    from sap_b1_sales.integration.doctype.b1_connection_settings.b1_connection_settings import (
+    from sap_b1_sales.b1_integration.doctype.b1_connection_settings.b1_connection_settings import (
         get_connection_settings,
     )
     settings = get_connection_settings()

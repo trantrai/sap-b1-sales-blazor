@@ -7,7 +7,7 @@ import frappe
 from frappe.utils import now_datetime
 
 from sap_b1_sales.b1_client import get_b1_client
-from sap_b1_sales.integration.doctype.b1_connection_settings.b1_connection_settings import (
+from sap_b1_sales.b1_integration.doctype.b1_connection_settings.b1_connection_settings import (
     get_connection_settings,
 )
 from sap_b1_sales.utils import customer_out, item_out
@@ -45,7 +45,7 @@ def start_sync(entities: str = "customers,items,tax_codes"):
             "started_at": now_datetime(),
         }).insert(ignore_permissions=True)
         job = frappe.enqueue(
-            "sap_b1_sales.integration.api.sync.run_sync",
+            "sap_b1_sales.b1_integration.api.sync.run_sync",
             queue="long",
             logname=log.name,
             entity=entity,

@@ -16,7 +16,8 @@ def get_connection_settings() -> dict:
         "b1_service_layer_url": doc.b1_service_layer_url or "",
         "b1_company_db": doc.b1_company_db or "",
         "b1_username": doc.b1_username or "",
-        "b1_password": doc.get_password("b1_password"),
+        # mock mode không cần password — tránh ValidationError khi chưa nhập
+        "b1_password": doc.get_password("b1_password") if not doc.b1_mock else "",
         "b1_verify_ssl": bool(doc.b1_verify_ssl),
         "b1_timeout": doc.b1_timeout or 30,
         "databases": [

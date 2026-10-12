@@ -24,7 +24,7 @@ doc_events = {
 # Scheduler — chạy định kỳ (mặc định tắt, bật khi cần)
 # scheduler_events = {
 #     "hourly": [
-#         "sap_b1_sales.integration.api.sync.enqueue_master_sync",
+#         "sap_b1_sales.b1_integration.api.sync.enqueue_master_sync",
 #     ],
 # }
 
@@ -32,5 +32,5 @@ doc_events = {
 app_include_js = "/assets/sap_b1_sales/js/sap_b1_sales.js"
 app_include_css = "/assets/sap_b1_sales/css/sap_b1_sales.css"
 
-# Whitelisted API đã expose qua @frappe.whitelist() trong sap_b1_sales.integration.api.*
-# Endpoint mẫu: /api/method/sap_b1_sales.integration.api.orders.list_orders
+# Whitelisted API đã expose qua @frappe.whitelist() trong sap_b1_sales.b1_integration.api.*
+# Endpoint mẫu: /api/method/sap_b1_sales.b1_integration.api.orders.list_orders

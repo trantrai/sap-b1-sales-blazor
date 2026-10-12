@@ -29,7 +29,7 @@ class B1SalesOrder(Document):
 def push_to_b1(docname: str):
     """Đẩy đơn lên B1 Service Layer (chạy nền)."""
     from sap_b1_sales.b1_client import get_b1_client
-    from sap_b1_sales.integration.doctype.b1_connection_settings.b1_connection_settings import (
+    from sap_b1_sales.b1_integration.doctype.b1_connection_settings.b1_connection_settings import (
         get_connection_settings,
     )
 

@@ -1,12 +1,12 @@
 """API đơn hàng — tương đương OrdersController.cs (.NET).
 
-Endpoint Frappe: /api/method/sap_b1_sales.integration.api.orders.<ten_ham>
+Endpoint Frappe: /api/method/sap_b1_sales.b1_integration.api.orders.<ten_ham>
 """
 
 import frappe
 
 from sap_b1_sales.b1_client import get_b1_client
-from sap_b1_sales.integration.doctype.b1_connection_settings.b1_connection_settings import (
+from sap_b1_sales.b1_integration.doctype.b1_connection_settings.b1_connection_settings import (
     get_connection_settings,
 )
 from sap_b1_sales.utils import order_out, paged
@@ -54,7 +54,12 @@ def get_order(doc_entry: int):
 @frappe.whitelist()
 def create_order():
     """POST /api/orders — tạo đơn (idempotent theo external_id)."""
+    import json
+
     data = frappe.local.form_dict
+    lines = data.get("lines") or []
+    if isinstance(lines, str):
+        lines = json.loads(lines) if lines.strip() else []
     payload = {
         "CardCode": data.get("card_code"),
         "DocDate": data.get("doc_date"),
@@ -77,7 +82,7 @@ def create_order():
                 "WarehouseCode": l.get("warehouse"),
                 "TaxCode": l.get("tax_code"),
             }
-            for l in (data.get("lines") or [])
+            for l in lines
         ],
     }
     result = _client().create_order(payload)
